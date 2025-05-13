@@ -23,6 +23,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(controller_data_monitor
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        transfer/serial_transfer_domain.h
+        widgets/transfer_settings_widget.h widgets/transfer_settings_widget.cpp widgets/transfer_settings_widget.ui
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET controller_data_monitor APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
