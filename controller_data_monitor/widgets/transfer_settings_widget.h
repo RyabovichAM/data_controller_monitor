@@ -15,6 +15,8 @@ public:
     explicit TransferSettingsWidget(QWidget *parent = nullptr);
     ~TransferSettingsWidget();
 
+    void GetSettings();
+
 private:
     Ui::TransferSettingsWidget *ui;
 };

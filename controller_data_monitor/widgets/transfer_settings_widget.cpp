@@ -12,3 +12,16 @@ TransferSettingsWidget::~TransferSettingsWidget()
 {
     delete ui;
 }
+
+
+void TransferSettingsWidget::GetSettings()
+{
+    // int index = this->currentIndex();
+    // switch(index) {
+    //     case 0:
+    //     return std::make_unique<SerialTransfer>()
+    //         break;
+    //     case 1:
+
+    // }
+}

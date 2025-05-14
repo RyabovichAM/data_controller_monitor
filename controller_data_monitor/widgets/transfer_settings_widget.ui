@@ -20,9 +20,9 @@
    <string>TabWidget</string>
   </property>
   <property name="currentIndex">
-   <number>0</number>
+   <number>1</number>
   </property>
-  <widget class="QWidget" name="tab">
+  <widget class="QWidget" name="tab_serial">
    <attribute name="title">
     <string>Serial</string>
    </attribute>
@@ -130,7 +130,7 @@
     </item>
    </widget>
   </widget>
-  <widget class="QWidget" name="tab_2">
+  <widget class="QWidget" name="tab_tcp">
    <attribute name="title">
     <string>TCP</string>
    </attribute>

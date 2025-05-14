@@ -25,6 +25,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         transfer/serial_transfer_domain.h
         widgets/transfer_settings_widget.h widgets/transfer_settings_widget.cpp widgets/transfer_settings_widget.ui
+        transfer/transfer_interface.h transfer/transfer_interface.cpp
+        transfer/transfer_domain.h transfer/transfer_domain.cpp
 
     )
 # Define target properties for Android with Qt 6 as:
