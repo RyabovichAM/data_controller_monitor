@@ -9,8 +9,8 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets SerialPort)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets SerialPort)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -27,6 +27,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         widgets/transfer_settings_widget.h widgets/transfer_settings_widget.cpp widgets/transfer_settings_widget.ui
         transfer/transfer_interface.h transfer/transfer_interface.cpp
         transfer/transfer_domain.h transfer/transfer_domain.cpp
+        transfer/serial_transfer_domain.cpp
+        transfer/serial_transfer.h transfer/serial_transfer.cpp
 
     )
 # Define target properties for Android with Qt 6 as:
@@ -47,7 +49,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(controller_data_monitor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+target_link_libraries(controller_data_monitor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

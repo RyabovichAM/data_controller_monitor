@@ -2,6 +2,7 @@
 #define TRANSFER_DOMAIN_H
 
 #include <QScopedPointer>
+#include <QStringList>
 
 class TransferInterface;
 
@@ -12,7 +13,18 @@ enum class TransferType {
     TCP
 };
 
-QScopedPointer<TransferInterface> CreateTransfer(TransferType type);
+struct TransferSettings {
+    TransferType type;
+    QStringList settings;
+};
+
+
+
+QScopedPointer<TransferInterface> CreateTransfer(TransferType type,
+                        QStringList&& settings);
+
+
+
 
 } //transfer namespace
 
