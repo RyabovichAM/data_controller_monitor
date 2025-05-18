@@ -7,8 +7,9 @@ namespace transfer {
 class TransferInterface : public QObject {
     Q_OBJECT
 public:
-    explicit TransferInterface(QObject *parent = nullptr) {
+    explicit TransferInterface(QObject *parent = nullptr) : QObject{parent} {
     }
+
     virtual ~TransferInterface() {
     }
 

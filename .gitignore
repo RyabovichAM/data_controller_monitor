@@ -1,6 +1,6 @@
 #build directory
 build
-*.user
+CMakeLists.txt.user
 
 # Prerequisites
 *.d

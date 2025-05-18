@@ -12,20 +12,22 @@ QSerialPort::StopBits getStopBitsFromString(QString stopBitsStr);
 QSerialPort::FlowControl getFlowControlFromString(QString flowControlStr);
 
 struct SerialSettings {
-    QSerialPort::BaudRate       baudRate;
-    QSerialPort::DataBits       dataBits;
-    QSerialPort::Parity         parity;
-    QSerialPort::StopBits       stopBits;
-    QSerialPort::FlowControl    flowControl;
+    QString                     port_name;
+    QSerialPort::BaudRate       baudRate = QSerialPort::Baud9600;
+    QSerialPort::DataBits       dataBits = QSerialPort::Data8;
+    QSerialPort::Parity         parity = QSerialPort::NoParity;
+    QSerialPort::StopBits       stopBits = QSerialPort::OneSto;
+    QSerialPort::FlowControl    flowControl = QSerialPort::NoFlowControl;
 };
 
 /*
     @IMPORTANT, the structure of the QStringList must be:
-    list[0] is BaudRate;
-    list[1] is DataBits;
-    list[2] is Parity;
-    list[3] is StopBits;
-    list[4] is FlowControl;
+    list[0] is PortName;
+    list[1] is BaudRate;
+    list[2] is DataBits;
+    list[3] is Parity;
+    list[4] is StopBits;
+    list[5] is FlowControl;
 */
 SerialSettings getSerialSettingsFromList(QStringList&& lst);
 

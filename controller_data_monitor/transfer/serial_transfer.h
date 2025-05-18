@@ -3,27 +3,35 @@
 
 #include <QSerialPort>
 #include "transfer_interface.h"
+#include "serial_transfer_domain.h"
 
 namespace transfer {
 
 class SerialTransfer : public TransferInterface {
     Q_OBJECT
 public:
-    explicit SerialTransfer(const QString &portName, QObject *parent = nullptr)
-        : Transfer(parent), m_portName(portName), m_serialPort(new QSerialPort(this)) {
-        connect(m_serialPort, &QSerialPort::readyRead, this, [this]() {
-            emit dataReceived(readAll());
-        });
-        connect(m_serialPort, &QSerialPort::errorOccurred, this, [this](QSerialPort::SerialPortError error) {
-            if (error != QSerialPort::NoError) {
-                emit errorOccurred(m_serialPort->errorString());
-            }
-        });
+    explicit SerialTransfer(SerialSettings&& settings, QObject *parent = nullptr)
+        :   settings_{std::move(settings)},
+            TransferInterface{parent},
+            serial_port_{settings_.port_name} {
+
+        serial_port_->setBaudRate(settings_.baudRate);
+        serial_port_->setDataBits(settings_.dataBits);
+        serial_port_->setParity(settings_.parity);
+        serial_port_->setStopBits(settings_.stopBits);
+        serial_port_->setFlowControl(settings_.flowControl);
+
+        // connect(serial_port_, &QSerialPort::readyRead, this, [this]() {
+        //     emit dataReceived(readAll());
+        // });
+        // connect(serial_port_, &QSerialPort::errorOccurred, this, [this](QSerialPort::SerialPortError error) {
+        //     if (error != QSerialPort::NoError) {
+        //         emit errorOccurred(serial_port_->errorString());
+        //     }
+        // });
     }
 
     bool open() override {
-        m_serialPort->setPortName(m_portName);
-        // Установка параметров по умолчанию
         m_serialPort->setBaudRate(QSerialPort::Baud9600);
         m_serialPort->setDataBits(QSerialPort::Data8);
         m_serialPort->setParity(QSerialPort::NoParity);
@@ -47,37 +55,37 @@ public:
     }
 
     QByteArray readAll() override {
-        return m_serialPort->readAll();
+        return serial_port_.readAll();
     }
 
     bool isOpen() const override {
-        return m_serialPort->isOpen();
+        return serial_port_.isOpen();
     }
 
     // Дополнительные методы для настройки параметров порта
     void setBaudRate(qint32 baudRate) {
-        m_serialPort->setBaudRate(baudRate);
+        serial_port_.setBaudRate(baudRate);
     }
 
     void setDataBits(QSerialPort::DataBits dataBits) {
-        m_serialPort->setDataBits(dataBits);
+        serial_port_.>setDataBits(dataBits);
     }
 
     void setParity(QSerialPort::Parity parity) {
-        m_serialPort->setParity(parity);
+        serial_port_.setParity(parity);
     }
 
     void setStopBits(QSerialPort::StopBits stopBits) {
-        m_serialPort->setStopBits(stopBits);
+        serial_port_.setStopBits(stopBits);
     }
 
     void setFlowControl(QSerialPort::FlowControl flowControl) {
-        m_serialPort->setFlowControl(flowControl);
+        serial_port_.setFlowControl(flowControl);
     }
 
 private:
-    QString m_portName;
-    QSerialPort *m_serialPort;
+    SerialSettings settings_;
+    QSerialPort serial_port_;
 };
 
 }   //transfer namespace

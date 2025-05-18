@@ -50,19 +50,21 @@ QSerialPort::FlowControl getFlowControlFromString(QString flowControlStr) {
 
 /*
     @IMPORTANT, the structure of the QStringList must be:
-    list[0] is BaudRate;
-    list[1] is DataBits;
-    list[2] is Parity;
-    list[3] is StopBits;
-    list[4] is FlowControl;
+    list[0] is PortName;
+    list[1] is BaudRate;
+    list[2] is DataBits;
+    list[3] is Parity;
+    list[4] is StopBits;
+    list[5] is FlowControl;
 */
 SerialSettings getSerialSettingsFromList(QStringList&& lst) {
     SerialSettings settings;
-    settings.baudRate = getBaudRateFromString(std::move(lst[0]));
-    settings.dataBits = getDataBitsFromString(std::move(lst[1]));
-    settings.parity = getParityFromString(std::move(lst[2]));
-    settings.stopBits = getStopBitsFromString(std::move(lst[3]));
-    settings.flowControl = getFlowControlFromString(std::move(lst[4]));
+    settings.port_name = std::move(list[0]);
+    settings.baudRate = getBaudRateFromString(std::move(lst[1]));
+    settings.dataBits = getDataBitsFromString(std::move(lst[2]));
+    settings.parity = getParityFromString(std::move(lst[3]));
+    settings.stopBits = getStopBitsFromString(std::move(lst[4]));
+    settings.flowControl = getFlowControlFromString(std::move(lst[5]));
 
     return settings;
 }
