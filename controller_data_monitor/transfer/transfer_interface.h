@@ -25,6 +25,8 @@ public:
     // Прочитать данные
     virtual QByteArray readAll() = 0;
 
+    virtual bool readDataLine(QVector<QByteArray>& data, char separator = ',') = 0;
+
     // Проверить, открыто ли соединение
     virtual bool isOpen() const = 0;
 

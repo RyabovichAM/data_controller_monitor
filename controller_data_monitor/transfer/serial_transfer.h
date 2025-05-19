@@ -15,11 +15,11 @@ public:
             TransferInterface{parent},
             serial_port_{settings_.port_name} {
 
-        serial_port_->setBaudRate(settings_.baudRate);
-        serial_port_->setDataBits(settings_.dataBits);
-        serial_port_->setParity(settings_.parity);
-        serial_port_->setStopBits(settings_.stopBits);
-        serial_port_->setFlowControl(settings_.flowControl);
+        serial_port_.setBaudRate(settings_.baudRate);
+        serial_port_.setDataBits(settings_.dataBits);
+        serial_port_.setParity(settings_.parity);
+        serial_port_.setStopBits(settings_.stopBits);
+        serial_port_.setFlowControl(settings_.flowControl);
 
         // connect(serial_port_, &QSerialPort::readyRead, this, [this]() {
         //     emit dataReceived(readAll());
@@ -32,43 +32,80 @@ public:
     }
 
     bool open() override {
-        m_serialPort->setBaudRate(QSerialPort::Baud9600);
-        m_serialPort->setDataBits(QSerialPort::Data8);
-        m_serialPort->setParity(QSerialPort::NoParity);
-        m_serialPort->setStopBits(QSerialPort::OneStop);
-        m_serialPort->setFlowControl(QSerialPort::NoFlowControl);
-
-        if (m_serialPort->open(QIODevice::ReadWrite)) {
-            emit connectionStateChanged(true);
-            return true;
-        }
-        return false;
+        return serial_port_.open(settings_.open_mode);
     }
 
     void close() override {
-        m_serialPort->close();
-        emit connectionStateChanged(false);
+        serial_port_.close();
     }
 
-    qint64 write(const QByteArray &data) override {
-        return m_serialPort->write(data);
+    qint64 write(const QByteArray& data) override {
+        return serial_port_.write(data);
     }
 
     QByteArray readAll() override {
         return serial_port_.readAll();
     }
 
+    bool readDataLine(QVector<QByteArray>& data, char separator = ',') override {
+        buffer_ += serial_port_.readAll();
+        QVector<QByteArray> ring;
+        ring.reserve(data.size());
+        size_t end_of_the_ring = 0;
+
+        bool first_separator = true;
+        // bool first_end_line = true;
+        QByteArray unit;
+
+        for (auto byte : buffer_) {
+            if(ring.size() == data.size()) {
+                break;
+            }
+
+            if(byte == '\n') {
+                end_of_the_ring = ring.size();
+                //data before first separator not full (not valid)
+                if(first_separator) {
+                    first_separator = false;
+                    unit.clear();
+                } else {
+                    ring.push_back(std::move(unit));
+                    unit.clear();
+                }
+                continue;
+            }
+
+            if(byte == separator) {
+
+                //data before first separator not full (not valid)
+                if(first_separator) {
+                    first_separator = false;
+                    unit.clear();
+                } else {
+                    ring.push_back(std::move(unit));
+                    unit.clear();
+                }
+                continue;
+            }
+            unit.push_back(byte);
+        }
+
+        // if()
+        return false;
+
+
+    }
+
     bool isOpen() const override {
         return serial_port_.isOpen();
     }
 
-    // Дополнительные методы для настройки параметров порта
     void setBaudRate(qint32 baudRate) {
         serial_port_.setBaudRate(baudRate);
     }
 
     void setDataBits(QSerialPort::DataBits dataBits) {
-        serial_port_.>setDataBits(dataBits);
+        serial_port_.setDataBits(dataBits);
     }
 
     void setParity(QSerialPort::Parity parity) {
@@ -86,6 +123,7 @@ public:
 private:
     SerialSettings settings_;
     QSerialPort serial_port_;
+    QByteArray buffer_;
 };
 
 }   //transfer namespace

@@ -16,8 +16,9 @@ struct SerialSettings {
     QSerialPort::BaudRate       baudRate = QSerialPort::Baud9600;
     QSerialPort::DataBits       dataBits = QSerialPort::Data8;
     QSerialPort::Parity         parity = QSerialPort::NoParity;
-    QSerialPort::StopBits       stopBits = QSerialPort::OneSto;
+    QSerialPort::StopBits       stopBits = QSerialPort::OneStop;
     QSerialPort::FlowControl    flowControl = QSerialPort::NoFlowControl;
+    QIODeviceBase::OpenMode     open_mode;
 };
 
 /*

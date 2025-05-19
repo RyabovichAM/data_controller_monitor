@@ -1,3 +1,7 @@
 #include "serial_transfer.h"
 
-SerialTransfer::SerialTransfer() {}
+namespace transfer {
+
+
+}   //transfer namespace
+
