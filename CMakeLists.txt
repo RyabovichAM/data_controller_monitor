@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(controller_data_monitor VERSION 0.1 LANGUAGES CXX)
+project(data_controller_monitor VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -12,52 +12,39 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets SerialPort)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets SerialPort)
 
+file(GLOB_RECURSE TRANSFER_SRC transfer/*.cpp transfer/*.h)
+file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widget/*.h)
+
 set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
+        ${TRANSFER_SRC}
+        ${WIDGETS_SRC}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(controller_data_monitor
+    qt_add_executable(data_controller_monitor
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        transfer/serial_transfer_domain.h
-        widgets/transfer_settings_widget.h widgets/transfer_settings_widget.cpp widgets/transfer_settings_widget.ui
-        transfer/transfer_interface.h transfer/transfer_interface.cpp
-        transfer/transfer_domain.h transfer/transfer_domain.cpp
-        transfer/serial_transfer_domain.cpp
-        transfer/serial_transfer.h transfer/serial_transfer.cpp
-
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET controller_data_monitor APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
-    if(ANDROID)
-        add_library(controller_data_monitor SHARED
+        add_executable(data_controller_monitor
             ${PROJECT_SOURCES}
         )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
-    else()
-        add_executable(controller_data_monitor
-            ${PROJECT_SOURCES}
-        )
-    endif()
 endif()
 
-target_link_libraries(controller_data_monitor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort)
+target_include_directories(data_controller_monitor PRIVATE widgets/ transfer/)
+target_link_libraries(data_controller_monitor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
 # explicit, fixed bundle identifier manually though.
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.controller_data_monitor)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.data_controller_monitor)
 endif()
-set_target_properties(controller_data_monitor PROPERTIES
+set_target_properties(data_controller_monitor PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -66,12 +53,32 @@ set_target_properties(controller_data_monitor PROPERTIES
 )
 
 include(GNUInstallDirs)
-install(TARGETS controller_data_monitor
+install(TARGETS data_controller_monitor
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(controller_data_monitor)
+    qt_finalize_executable(data_controller_monitor)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  find_package(GTest REQUIRED)
+  include_directories(${GTEST_INCLUDE_DIRS})
+
+  file(GLOB_RECURSE TESTS_SRC tests/*.cpp tests/*.h)
+
+  qt_add_executable(data_controller_monitor_tests
+    ${TRANSFER_SRC}
+    ${WIDGETS_SRC}
+    ${TESTS_SRC}
+  )
+
+  target_include_directories(data_controller_monitor_tests PRIVATE transfer/ widgets/)
+  target_link_libraries(data_controller_monitor_tests PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort
+    GTest::GTest
+    pthread)
+
 endif()
