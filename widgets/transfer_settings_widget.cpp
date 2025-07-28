@@ -14,14 +14,15 @@ TransferSettingsWidget::~TransferSettingsWidget()
 }
 
 
-void TransferSettingsWidget::GetSettings()
+QHash<QString, QString> TransferSettingsWidget::GetSettings()
 {
-    // int index = this->currentIndex();
-    // switch(index) {
-    //     case 0:
-    //     return std::make_unique<SerialTransfer>()
-    //         break;
-    //     case 1:
+    QHash<QString, QString> settings;
+    auto widget = currentWidget();
 
-    // }
+    QList<QComboBox*> comboboxes = widget->findChildren<QComboBox*>();
+
+    for (QComboBox* combo : comboboxes) {
+        settings[combo->objectName()] = combo->currentText();
+    }
+    return settings;
 }

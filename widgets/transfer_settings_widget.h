@@ -15,7 +15,7 @@ public:
     explicit TransferSettingsWidget(QWidget *parent = nullptr);
     ~TransferSettingsWidget();
 
-    void GetSettings();
+    QHash<QString, QString> GetSettings();
 
 private:
     Ui::TransferSettingsWidget *ui;
