@@ -13,11 +13,11 @@ QSerialPort::FlowControl getFlowControlFromString(QString flowControlStr);
 
 struct SerialSettings {
     QString                     port_name;
-    QSerialPort::BaudRate       baudRate = QSerialPort::Baud9600;
-    QSerialPort::DataBits       dataBits = QSerialPort::Data8;
+    QSerialPort::BaudRate       baud_rate = QSerialPort::Baud9600;
+    QSerialPort::DataBits       data_bits = QSerialPort::Data8;
     QSerialPort::Parity         parity = QSerialPort::NoParity;
-    QSerialPort::StopBits       stopBits = QSerialPort::OneStop;
-    QSerialPort::FlowControl    flowControl = QSerialPort::NoFlowControl;
+    QSerialPort::StopBits       stop_bits = QSerialPort::OneStop;
+    QSerialPort::FlowControl    flow_control = QSerialPort::NoFlowControl;
     QIODeviceBase::OpenMode     open_mode;
 };
 

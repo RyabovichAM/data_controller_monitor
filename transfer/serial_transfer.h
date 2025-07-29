@@ -15,11 +15,11 @@ public:
             TransferInterface{parent},
             serial_port_{settings_.port_name} {
 
-        serial_port_.setBaudRate(settings_.baudRate);
-        serial_port_.setDataBits(settings_.dataBits);
+        serial_port_.setBaudRate(settings_.baud_rate);
+        serial_port_.setDataBits(settings_.data_bits);
         serial_port_.setParity(settings_.parity);
-        serial_port_.setStopBits(settings_.stopBits);
-        serial_port_.setFlowControl(settings_.flowControl);
+        serial_port_.setStopBits(settings_.stop_bits);
+        serial_port_.setFlowControl(settings_.flow_control);
 
         // connect(serial_port_, &QSerialPort::readyRead, this, [this]() {
         //     emit dataReceived(readAll());

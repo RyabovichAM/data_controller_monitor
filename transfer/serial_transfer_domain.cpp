@@ -60,11 +60,11 @@ QSerialPort::FlowControl getFlowControlFromString(QString flowControlStr) {
 SerialSettings getSerialSettingsFromList(QStringList&& lst) {
     SerialSettings settings;
     settings.port_name = std::move(lst[0]);
-    settings.baudRate = getBaudRateFromString(std::move(lst[1]));
-    settings.dataBits = getDataBitsFromString(std::move(lst[2]));
+    settings.baud_rate = getBaudRateFromString(std::move(lst[1]));
+    settings.data_bits = getDataBitsFromString(std::move(lst[2]));
     settings.parity = getParityFromString(std::move(lst[3]));
-    settings.stopBits = getStopBitsFromString(std::move(lst[4]));
-    settings.flowControl = getFlowControlFromString(std::move(lst[5]));
+    settings.stop_bits = getStopBitsFromString(std::move(lst[4]));
+    settings.flow_control = getFlowControlFromString(std::move(lst[5]));
 
     return settings;
 }
