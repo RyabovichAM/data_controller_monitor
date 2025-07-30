@@ -24,4 +24,3 @@ TEST(TransferSettingsWidget, GetSetting) {
     ASSERT_TRUE(settings.contains("flow_control"));
     EXPECT_EQ(settings["flow_control"],"None");
 }
-
