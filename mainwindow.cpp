@@ -3,6 +3,8 @@
 
 #include <QMdiSubWindow>
 
+#include "monitor_unit_settings_widget.h"
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -22,6 +24,9 @@ MainWindow::~MainWindow()
 
 void MainWindow::ClickNewControllerViewer(bool) {
     QMdiSubWindow *subWindow = new QMdiSubWindow(this);
+
+    MonitorUnitSettingsWidget musw;
+    musw.exec();
 
     mdi_area_.addSubWindow(subWindow);
     subWindow->show();
