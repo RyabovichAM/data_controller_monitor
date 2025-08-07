@@ -4,6 +4,7 @@
 #include <QDialog>
 
 #include "transfer_settings_widget.h"
+#include "view_widget.h"
 
 namespace Ui {
 class MonitorUnitSettingsWidget;
@@ -21,6 +22,7 @@ private:
     Ui::MonitorUnitSettingsWidget *ui;
 
     TransferSettingsWidget* transfer_stg_wgt_;
+    ViewWidget* view_widget_;
 };
 
 #endif // MONITOR_UNIT_SETTINGS_WIDGET_H
