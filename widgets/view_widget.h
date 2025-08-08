@@ -35,5 +35,5 @@ private:
     DragArea* dragArea;
 };
 
-#include "view_widget.moc"
+
 #endif // VIEW_WIDGET_H

@@ -3,6 +3,8 @@
 #include <QMouseEvent>
 #include <QMenu>
 
+#include "label_settings_widget.h"
+
 namespace ComponentWidgets {
 
 Label::Label(QWidget* parent)
@@ -28,11 +30,18 @@ void Label::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::RightButton) {
         showContextMenu(event->pos());
     }
+    QLabel::mousePressEvent(event);
 }
 
 void Label::mouseDoubleClickEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
-
+        LabelSettingsWidget label_stg_wgt{nullptr,this->text(),this->objectName(),
+                                          this->size()};
+        label_stg_wgt.exec();
+        LabelSettings label_stg = label_stg_wgt.GetSettings();
+        this->setText(label_stg.label);
+        this->setObjectName(label_stg.object_name);
+        this->setFixedSize(label_stg.width,label_stg.height);
     }
     QLabel::mouseDoubleClickEvent(event);
 }

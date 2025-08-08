@@ -52,9 +52,6 @@ ViewWidget::ViewWidget(QWidget *parent)
     setWindowTitle("View Widget");
     setGeometry(100, 100, 800, 600);
 
-    // QWidget* centralWidget = new QWidget{this};
-    // setCentralWidget(centralWidget);
-
     QHBoxLayout* layout = new QHBoxLayout{};
     setLayout(layout);
 
