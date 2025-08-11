@@ -30,7 +30,6 @@ void Label::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::RightButton) {
         showContextMenu(event->pos());
     }
-    QLabel::mousePressEvent(event);
 }
 
 void Label::mouseDoubleClickEvent(QMouseEvent *event) {
@@ -43,7 +42,6 @@ void Label::mouseDoubleClickEvent(QMouseEvent *event) {
         this->setObjectName(label_stg.object_name);
         this->setFixedSize(label_stg.width,label_stg.height);
     }
-    QLabel::mouseDoubleClickEvent(event);
 }
 
 void Label::showContextMenu(const QPoint& pos) {

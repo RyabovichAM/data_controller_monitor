@@ -14,6 +14,8 @@ LabelSettingsWidget::LabelSettingsWidget(QWidget *parent, const QString& label,
     ui->obj_name_edit->setText(obj_name);
     ui->height_edit->setText(QString::number(size.height()));
     ui->width_edit->setText(QString::number(size.width()));
+    //
+    SetUp();
 }
 
 LabelSettingsWidget::~LabelSettingsWidget()
@@ -23,14 +25,24 @@ LabelSettingsWidget::~LabelSettingsWidget()
 
 void LabelSettingsWidget::on_buttonBox_accepted()
 {
+    SetUp();
+}
+
+const LabelSettings& LabelSettingsWidget::GetSettings() const {
+    return settings_;
+}
+
+void LabelSettingsWidget::on_buttonBox_rejected()
+{
+    close();
+}
+
+void LabelSettingsWidget::SetUp() {
     settings_.label = ui->label_edit->text();
     settings_.object_name = ui->obj_name_edit->text();
     settings_.width = ui->width_edit->text().toInt();
     settings_.height = ui->height_edit->text().toInt();
 }
 
-const LabelSettings& LabelSettingsWidget::GetSettings() const {
-    return settings_;
-}
 
 }   //namespace ComponentWidgets
