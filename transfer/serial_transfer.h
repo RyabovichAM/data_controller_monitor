@@ -31,6 +31,11 @@ public:
         // });
     }
 
+    SerialTransfer(QObject *parent = nullptr)
+        : TransferInterface{parent} {
+
+    }
+
     bool open() override {
         return serial_port_.open(settings_.open_mode);
     }

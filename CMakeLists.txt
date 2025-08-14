@@ -14,6 +14,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets SerialPort)
 
 file(GLOB_RECURSE TRANSFER_SRC transfer/*.cpp transfer/*.h)
 file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widget/*.h)
+file(GLOB_RECURSE APP_SRC app/*.cpp app/*.h)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -22,6 +23,7 @@ set(PROJECT_SOURCES
         mainwindow.ui
         ${TRANSFER_SRC}
         ${WIDGETS_SRC}
+        ${APP_SRC}
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -35,7 +37,7 @@ else()
         )
 endif()
 
-target_include_directories(data_controller_monitor PRIVATE widgets/ transfer/)
+target_include_directories(data_controller_monitor PRIVATE app/ widgets/ transfer/)
 target_link_libraries(data_controller_monitor PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -72,10 +74,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   qt_add_executable(data_controller_monitor_tests
     ${TRANSFER_SRC}
     ${WIDGETS_SRC}
+    ${APP_SRC}
     ${TESTS_SRC}
   )
 
-  target_include_directories(data_controller_monitor_tests PRIVATE transfer/ widgets/)
+  target_include_directories(data_controller_monitor_tests PRIVATE app/ widgets/ transfer/)
   target_link_libraries(data_controller_monitor_tests PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::SerialPort
     GTest::GTest

@@ -1,12 +1,13 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 
-#include <QMdiSubWindow>
 
 #include "monitor_unit_settings_widget.h"
+#include "mdisubwindow_decorator.h"
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(app::Application& app, QWidget *parent)
     : QMainWindow(parent)
+    , app_{app}
     , ui(new Ui::MainWindow)
     , mdi_area_{}
 {
@@ -17,16 +18,20 @@ MainWindow::MainWindow(QWidget *parent)
 
 }
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
     delete ui;
 }
 
 void MainWindow::ClickNewControllerViewer(bool) {
-    QMdiSubWindow *subWindow = new QMdiSubWindow(this);
+    MdiSubWindowDecorator *subWindow = new MdiSubWindowDecorator;
 
     MonitorUnitSettingsWidget musw;
     musw.exec();
+
+    auto unit_iter = app_.CreateUnit(musw.GetWidget(),musw.GetSettings());
+
+    subWindow->AddMonitorUnit(unit_iter);
+    subWindow->setWidget(musw.GetWidget());
 
     mdi_area_.addSubWindow(subWindow);
     subWindow->show();

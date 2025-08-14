@@ -3,6 +3,7 @@
 
 #include <QDialog>
 
+#include "app_domain.h"
 #include "transfer_settings_widget.h"
 #include "view_widget.h"
 
@@ -17,6 +18,9 @@ class MonitorUnitSettingsWidget : public QDialog
 public:
     explicit MonitorUnitSettingsWidget(QWidget *parent = nullptr);
     ~MonitorUnitSettingsWidget();
+
+    const app::MonitorUnitSettings GetSettings() const;
+    QWidget* GetWidget() const;
 
 private:
     Ui::MonitorUnitSettingsWidget *ui;

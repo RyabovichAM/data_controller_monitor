@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QMdiArea>
 
+#include "application.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -15,7 +17,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    MainWindow(app::Application& app,  QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
@@ -24,5 +26,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QMdiArea mdi_area_;
+    app::Application& app_;
 };
 #endif // MAINWINDOW_H

@@ -30,9 +30,11 @@ class ViewWidget : public QWidget
 public:
     explicit ViewWidget(QWidget *parent = nullptr);
 
+    DropArea* GetDropArea();
+
 private:
-    DropArea* dropArea;
-    DragArea* dragArea;
+    DropArea* dropArea_;
+    DragArea* dragArea_;
 };
 
 

@@ -27,3 +27,14 @@ MonitorUnitSettingsWidget::~MonitorUnitSettingsWidget()
 {
     delete ui;
 }
+
+
+QWidget* MonitorUnitSettingsWidget::GetWidget() const {
+    return view_widget_->GetDropArea();
+}
+
+const app::MonitorUnitSettings MonitorUnitSettingsWidget::GetSettings() const {
+    app::MonitorUnitSettings result;
+    result.transfer = transfer_stg_wgt_->GetSettings();
+    return result;
+}

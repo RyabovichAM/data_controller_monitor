@@ -47,7 +47,7 @@ void DropArea::dropEvent(QDropEvent* event)  {
 }
 
 ViewWidget::ViewWidget(QWidget *parent)
-    : QWidget{parent}
+    : QWidget{parent} , dropArea_{new DropArea}
 {
     setWindowTitle("View Widget");
     setGeometry(100, 100, 800, 600);
@@ -55,9 +55,12 @@ ViewWidget::ViewWidget(QWidget *parent)
     QHBoxLayout* layout = new QHBoxLayout{};
     setLayout(layout);
 
-    dragArea = new DragArea{this};
-    layout->addWidget(dragArea,1);
+    dragArea_ = new DragArea{this};
+    layout->addWidget(dragArea_,1);
 
-    dropArea = new DropArea{this};
-    layout->addWidget(dropArea,4);
+    layout->addWidget(dropArea_,4);
+}
+
+DropArea* ViewWidget::GetDropArea() {
+    return dropArea_;
 }
