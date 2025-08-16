@@ -1,17 +1,21 @@
 #include "mdisubwindow_decorator.h"
 
-#include <QMenuBar>
 #include <QLayout>
 
 MdiSubWindowDecorator::MdiSubWindowDecorator(QWidget* parent)
-    :   QMdiSubWindow{parent} {
+    :   QMdiSubWindow{parent}
+    , menu_bar_{new QMenuBar(this)} {
     setAttribute(Qt::WA_DeleteOnClose);
 
-    QMenuBar *menuBar = new QMenuBar(this);
-    QMenu *fileMenu = menuBar->addMenu("Файл");
+
+    QMenu *fileMenu = menu_bar_->addMenu("Файл");
     fileMenu->addAction("Закрыть", this, &QMdiSubWindow::close);
 
-    this->layout()->setMenuBar(menuBar);
+    layout()->setMenuBar(menu_bar_);
+}
+
+void MdiSubWindowDecorator::AddMonitorUnit(const app::MonitorUnit_Iter& iter) {
+    MonitorUnit_iter_ = iter;
 }
 
 void MdiSubWindowDecorator::SetWidget(QWidget* wgt) {
@@ -22,7 +26,8 @@ void MdiSubWindowDecorator::SetWidget(QWidget* wgt) {
     resize(wgt->size());
 }
 
-
-void MdiSubWindowDecorator::AddMonitorUnit(const app::MonitorUnit_Iter& iter) {
-    MonitorUnit_iter_ = iter;
+void MdiSubWindowDecorator::SetMenuAvailable(bool is_avaibality) {
+    layout()->menuBar()->setVisible(is_avaibality);
 }
+
+

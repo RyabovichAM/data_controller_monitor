@@ -22,6 +22,8 @@ public:
 
 private slots:
     void ClickNewControllerViewer(bool);
+    void ClickEditMode(bool);
+    void ClickViewMode(bool);
 
 private:
     Ui::MainWindow *ui;

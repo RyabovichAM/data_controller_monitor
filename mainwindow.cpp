@@ -15,7 +15,8 @@ MainWindow::MainWindow(app::Application& app, QWidget *parent)
     setCentralWidget(&mdi_area_);
 
     connect(ui->actionNew_ControllerViewer, &QAction::triggered, this, &MainWindow::ClickNewControllerViewer);
-
+    connect(ui->actionEdit, &QAction::triggered, this, &MainWindow::ClickEditMode);
+    connect(ui->actionView, &QAction::triggered, this, &MainWindow::ClickViewMode);
 }
 
 MainWindow::~MainWindow() {
@@ -35,4 +36,20 @@ void MainWindow::ClickNewControllerViewer(bool) {
 
     mdi_area_.addSubWindow(subWindow);
     subWindow->show();
+}
+
+void MainWindow::ClickEditMode(bool) {
+    for(auto& subwindow : mdi_area_.subWindowList()) {
+        auto subwindow_decor = static_cast<MdiSubWindowDecorator*>(subwindow);
+        subwindow_decor->SetMenuAvailable(true);
+        subwindow_decor->setWindowFlags(Qt::Widget);
+    }
+}
+
+void MainWindow::ClickViewMode(bool) {
+    for(auto& subwindow : mdi_area_.subWindowList()) {
+        auto subwindow_decor = static_cast<MdiSubWindowDecorator*>(subwindow);
+        subwindow_decor->SetMenuAvailable(false);
+        subwindow_decor->setWindowFlags(Qt::Window | Qt::WindowTitleHint);
+    }
 }
