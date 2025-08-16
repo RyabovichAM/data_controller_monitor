@@ -31,7 +31,7 @@ void MainWindow::ClickNewControllerViewer(bool) {
     auto unit_iter = app_.CreateUnit(musw.GetWidget(),musw.GetSettings());
 
     subWindow->AddMonitorUnit(unit_iter);
-    subWindow->setWidget(musw.GetWidget());
+    subWindow->SetWidget(musw.GetWidget());
 
     mdi_area_.addSubWindow(subWindow);
     subWindow->show();

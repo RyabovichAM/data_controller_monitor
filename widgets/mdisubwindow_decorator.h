@@ -10,6 +10,7 @@ class MdiSubWindowDecorator : public QMdiSubWindow
 public:
     MdiSubWindowDecorator(QWidget* parent = nullptr);
     void AddMonitorUnit(const app::MonitorUnit_Iter& iter);
+    void SetWidget(QWidget* wgt);
 
 private:
     app::MonitorUnit_Iter MonitorUnit_iter_;
