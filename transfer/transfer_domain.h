@@ -14,17 +14,8 @@ enum class TransferType {
 };
 
 struct TransferSettings {
-    TransferType type;
-    QStringList settings;
+    virtual ~TransferSettings() = default;
 };
-
-
-
-QScopedPointer<TransferInterface> CreateTransfer(TransferType type,
-                        QStringList&& settings);
-
-
-
 
 } //transfer namespace
 

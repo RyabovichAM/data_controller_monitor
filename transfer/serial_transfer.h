@@ -1,7 +1,12 @@
 #ifndef SERIAL_TRANSFER_H
 #define SERIAL_TRANSFER_H
 
+#include <QJsonDocument>
 #include <QSerialPort>
+#include <QTextStream>
+#include <QDebug>
+
+#include "transfer_domain.h"
 #include "transfer_interface.h"
 #include "serial_transfer_domain.h"
 
@@ -10,25 +15,16 @@ namespace transfer {
 class SerialTransfer : public TransferInterface {
     Q_OBJECT
 public:
-    explicit SerialTransfer(SerialSettings&& settings, QObject *parent = nullptr)
-        :   settings_{std::move(settings)},
-            TransferInterface{parent},
-            serial_port_{settings_.port_name} {
+    explicit SerialTransfer(const QHash<QString,QString>& settings, QObject *parent = nullptr)
+        :   settings_{GetSerialSettingsFromHashMap(settings)},
+            TransferInterface{parent} {
 
-        serial_port_.setBaudRate(settings_.baud_rate);
-        serial_port_.setDataBits(settings_.data_bits);
-        serial_port_.setParity(settings_.parity);
-        serial_port_.setStopBits(settings_.stop_bits);
-        serial_port_.setFlowControl(settings_.flow_control);
 
-        // connect(serial_port_, &QSerialPort::readyRead, this, [this]() {
-        //     emit dataReceived(readAll());
-        // });
-        // connect(serial_port_, &QSerialPort::errorOccurred, this, [this](QSerialPort::SerialPortError error) {
-        //     if (error != QSerialPort::NoError) {
-        //         emit errorOccurred(serial_port_->errorString());
-        //     }
-        // });
+        QObject::connect(&serial_port_, &QSerialPort::errorOccurred, this, [self = this](QSerialPort::SerialPortError error) {
+            if (error != QSerialPort::NoError) {
+                emit self->errorOccurred(self->serial_port_.errorString());
+            }
+        });
     }
 
     SerialTransfer(QObject *parent = nullptr)
@@ -36,99 +32,104 @@ public:
 
     }
 
-    bool open() override {
-        return serial_port_.open(settings_.open_mode);
+    void SetUp(TransferSettings* settings) override {
+        auto serial_set = dynamic_cast<SerialSettings*>(settings);
+
+        if(!serial_set)
+            Q_ASSERT("SerialTransfer::SetUp: wrong cast");
+
+        serial_port_.setPortName(serial_set->port_name);
+        serial_port_.setBaudRate(serial_set->baud_rate);
+        serial_port_.setDataBits(serial_set->data_bits);
+        serial_port_.setParity(serial_set->parity);
+        serial_port_.setStopBits(serial_set->stop_bits);
+        serial_port_.setFlowControl(serial_set->flow_control);
     }
 
-    void close() override {
+    void Run(QIODeviceBase::OpenMode mode, OpenErrorHandler err_handler) override {
+        if(serial_port_.open(mode)) {
+        } else {
+            err_handler(serial_port_.errorString());
+        }
+    }
+
+    void Stop() override {
         serial_port_.close();
     }
 
-    qint64 write(const QByteArray& data) override {
-        return serial_port_.write(data);
+    void SetReceivedDataHandler(ReceivedDataHandler handler) override {
+        received_data_handler_ = handler;
     }
 
-    QByteArray readAll() override {
-        return serial_port_.readAll();
-    }
+    bool ReadJsonLine() override {
+        QTextStream stream{&serial_port_};
+        QString line = stream.readLine().trimmed();
+        QJsonParseError error;
+        QJsonDocument data = QJsonDocument::fromJson(line.toUtf8(), &error);
 
-    bool readDataLine(QVector<QByteArray>& data, char separator = ',') override {
-        buffer_ += serial_port_.readAll();
-        QVector<QByteArray> ring;
-        ring.reserve(data.size());
-        size_t end_of_the_ring = 0;
-
-        bool first_separator = true;
-        // bool first_end_line = true;
-        QByteArray unit;
-
-        for (auto byte : buffer_) {
-            if(ring.size() == data.size()) {
-                break;
-            }
-
-            if(byte == '\n') {
-                end_of_the_ring = ring.size();
-                //data before first separator not full (not valid)
-                if(first_separator) {
-                    first_separator = false;
-                    unit.clear();
-                } else {
-                    ring.push_back(std::move(unit));
-                    unit.clear();
-                }
-                continue;
-            }
-
-            if(byte == separator) {
-
-                //data before first separator not full (not valid)
-                if(first_separator) {
-                    first_separator = false;
-                    unit.clear();
-                } else {
-                    ring.push_back(std::move(unit));
-                    unit.clear();
-                }
-                continue;
-            }
-            unit.push_back(byte);
+        if(error.error == QJsonParseError::NoError) {
+            received_data_handler_();
+            return true;
         }
-
-        // if()
         return false;
-
-
     }
 
-    bool isOpen() const override {
-        return serial_port_.isOpen();
-    }
+    // bool readDataLine(QVector<QByteArray>& data, char separator = ',') override {
+    //     buffer_ += serial_port_.readAll();
+    //     QVector<QByteArray> ring;
+    //     ring.reserve(data.size());
+    //     size_t end_of_the_ring = 0;
 
-    void setBaudRate(qint32 baudRate) {
-        serial_port_.setBaudRate(baudRate);
-    }
+    //     bool first_separator = true;
+    //     // bool first_end_line = true;
+    //     QByteArray unit;
 
-    void setDataBits(QSerialPort::DataBits dataBits) {
-        serial_port_.setDataBits(dataBits);
-    }
+    //     for (auto byte : buffer_) {
+    //         if(ring.size() == data.size()) {
+    //             break;
+    //         }
 
-    void setParity(QSerialPort::Parity parity) {
-        serial_port_.setParity(parity);
-    }
+    //         if(byte == '\n') {
+    //             end_of_the_ring = ring.size();
+    //             //data before first separator not full (not valid)
+    //             if(first_separator) {
+    //                 first_separator = false;
+    //                 unit.clear();
+    //             } else {
+    //                 ring.push_back(std::move(unit));
+    //                 unit.clear();
+    //             }
+    //             continue;
+    //         }
 
-    void setStopBits(QSerialPort::StopBits stopBits) {
-        serial_port_.setStopBits(stopBits);
-    }
+    //         if(byte == separator) {
 
-    void setFlowControl(QSerialPort::FlowControl flowControl) {
-        serial_port_.setFlowControl(flowControl);
-    }
+    //             //data before first separator not full (not valid)
+    //             if(first_separator) {
+    //                 first_separator = false;
+    //                 unit.clear();
+    //             } else {
+    //                 ring.push_back(std::move(unit));
+    //                 unit.clear();
+    //             }
+    //             continue;
+    //         }
+    //         unit.push_back(byte);
+    //     }
+
+    //     // if()
+    //     return false;
+
+
+    // }
+
+signals:
+    void errorOccurred(QString);
 
 private:
     SerialSettings settings_;
     QSerialPort serial_port_;
-    QByteArray buffer_;
+    ReceivedDataHandler received_data_handler_;
 };
 
 }   //transfer namespace

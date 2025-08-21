@@ -1,24 +1,27 @@
 #ifndef SERIAL_TRANSFER_DOMAIN_H
 #define SERIAL_TRANSFER_DOMAIN_H
 
+#include <QHash>
 #include <QSerialPort>
+
+#include "transfer_domain.h"
 
 namespace transfer {
 
-QSerialPort::BaudRate getBaudRateFromString(QString baudRateStr);
-QSerialPort::DataBits getDataBitsFromString(QString dataBitsStr);
-QSerialPort::Parity getParityFromString(QString parityStr);
-QSerialPort::StopBits getStopBitsFromString(QString stopBitsStr);
-QSerialPort::FlowControl getFlowControlFromString(QString flowControlStr);
+QSerialPort::BaudRate GetBaudRateFromString(QString baudRateStr);
+QSerialPort::DataBits GetDataBitsFromString(QString dataBitsStr);
+QSerialPort::Parity GetParityFromString(QString parityStr);
+QSerialPort::StopBits GetStopBitsFromString(QString stopBitsStr);
+QSerialPort::FlowControl GetFlowControlFromString(QString flowControlStr);
 
-struct SerialSettings {
+struct SerialSettings : public TransferSettings {
     QString                     port_name;
     QSerialPort::BaudRate       baud_rate = QSerialPort::Baud9600;
     QSerialPort::DataBits       data_bits = QSerialPort::Data8;
     QSerialPort::Parity         parity = QSerialPort::NoParity;
     QSerialPort::StopBits       stop_bits = QSerialPort::OneStop;
     QSerialPort::FlowControl    flow_control = QSerialPort::NoFlowControl;
-    QIODeviceBase::OpenMode     open_mode;
+    QIODeviceBase::OpenMode     open_mode = QIODeviceBase::ReadOnly;
 };
 
 /*
@@ -30,7 +33,9 @@ struct SerialSettings {
     list[4] is StopBits;
     list[5] is FlowControl;
 */
-SerialSettings getSerialSettingsFromList(QStringList&& lst);
+SerialSettings GetSerialSettingsFromList(QStringList&& lst);
+
+SerialSettings GetSerialSettingsFromHashMap(const QHash<QString, QString>& settings_map);
 
 } // namespace transfer
 

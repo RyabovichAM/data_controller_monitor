@@ -2,7 +2,14 @@
 #define TRANSFER_INTERFACE_H
 
 #include <QObject>
+#include <QJsonParseError>
+
+#include "transfer_domain.h"
+
 namespace transfer {
+
+using OpenErrorHandler = std::function<void(QString)>;
+using ReceivedDataHandler = std::function<void()>;
 
 class TransferInterface : public QObject {
     Q_OBJECT
@@ -13,32 +20,12 @@ public:
     virtual ~TransferInterface() {
     }
 
-    // Открыть соединение
-    virtual bool open() = 0;
+    virtual void SetUp(TransferSettings* settings) = 0;
+    virtual void Run(QIODeviceBase::OpenMode mode, OpenErrorHandler err_handler) = 0;
+    virtual void Stop() = 0;
+    virtual void SetReceivedDataHandler(ReceivedDataHandler handler) = 0;
+    virtual bool ReadJsonLine() = 0;
 
-    // Закрыть соединение
-    virtual void close() = 0;
-
-    // Отправить данные
-    virtual qint64 write(const QByteArray &data) = 0;
-
-    // Прочитать данные
-    virtual QByteArray readAll() = 0;
-
-    virtual bool readDataLine(QVector<QByteArray>& data, char separator = ',') = 0;
-
-    // Проверить, открыто ли соединение
-    virtual bool isOpen() const = 0;
-
-signals:
-    // Сигнал о получении новых данных
-    void dataReceived(const QByteArray &data);
-
-    // Сигнал об ошибке
-    void errorOccurred(const QString &errorString);
-
-    // Сигнал об изменении состояния соединения
-    void connectionStateChanged(bool isConnected);
 };
 
 }   //transfer namespace
