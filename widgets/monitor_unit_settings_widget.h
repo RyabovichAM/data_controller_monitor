@@ -16,17 +16,17 @@ class MonitorUnitSettingsWidget : public QDialog
     Q_OBJECT
 
 public:
-    explicit MonitorUnitSettingsWidget(QWidget *parent = nullptr);
+    explicit MonitorUnitSettingsWidget(DropArea* parent = nullptr);
     ~MonitorUnitSettingsWidget();
 
     const app::MonitorUnitSettings GetSettings() const;
-    QWidget* GetWidget() const;
+    DropArea* GetWidget() const;
 
 private:
     Ui::MonitorUnitSettingsWidget *ui;
 
-    TransferSettingsWidget* transfer_stg_wgt_;
-    ViewWidget* view_widget_;
+    TransferSettingsWidget* transfer_stg_wgt_{nullptr};
+    ViewWidget* view_widget_{nullptr};
 };
 
 #endif // MONITOR_UNIT_SETTINGS_WIDGET_H

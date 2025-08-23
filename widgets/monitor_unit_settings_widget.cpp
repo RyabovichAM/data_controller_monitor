@@ -1,7 +1,7 @@
 #include "monitor_unit_settings_widget.h"
 #include "ui_monitor_unit_settings_widget.h"
 
-MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(QWidget *parent)
+MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(DropArea* parent)
     : QDialog(parent)
     , ui(new Ui::MonitorUnitSettingsWidget)
 {
@@ -29,7 +29,7 @@ MonitorUnitSettingsWidget::~MonitorUnitSettingsWidget()
 }
 
 
-QWidget* MonitorUnitSettingsWidget::GetWidget() const {
+DropArea* MonitorUnitSettingsWidget::GetWidget() const {
     return view_widget_->GetDropArea();
 }
 

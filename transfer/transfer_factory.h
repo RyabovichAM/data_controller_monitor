@@ -19,6 +19,15 @@ public:
         }
         throw std::invalid_argument("Unknown transfer to create");
     }
+
+    static std::unique_ptr<TransferInterface> CreateTransfer(const QHash<QString,QString>& settings) {
+        if (settings["type"] == "serial") {
+            return std::make_unique<SerialTransfer>(settings);
+        } else if (settings["type"] == "tcpip") {
+            //TODO
+        }
+        throw std::invalid_argument("Unknown transfer to create");
+    }
 };
 
 }   //transfer

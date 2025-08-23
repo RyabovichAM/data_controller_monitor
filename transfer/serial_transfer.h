@@ -19,12 +19,6 @@ public:
         :   settings_{GetSerialSettingsFromHashMap(settings)},
             TransferInterface{parent} {
 
-
-        QObject::connect(&serial_port_, &QSerialPort::errorOccurred, this, [self = this](QSerialPort::SerialPortError error) {
-            if (error != QSerialPort::NoError) {
-                emit self->errorOccurred(self->serial_port_.errorString());
-            }
-        });
     }
 
     SerialTransfer(QObject *parent = nullptr)
@@ -57,8 +51,17 @@ public:
         serial_port_.close();
     }
 
-    void SetReceivedDataHandler(ReceivedDataHandler handler) override {
-        received_data_handler_ = handler;
+    void SetJsonReceivedDataHandler(JsonReceivedDataHandler handler) override {
+        json_received_data_handler_ = handler;
+    }
+
+    void SetErrorOcccuredHandler(ErrorOcccuredHandler handler) override {
+        disconnect(&serial_port_,&QSerialPort::errorOccurred, nullptr, nullptr);
+        connect(&serial_port_, &QSerialPort::errorOccurred, this, [&handler](QSerialPort::SerialPortError error) {
+            if (error != QSerialPort::NoError) {
+                handler();
+            }
+        });
     }
 
     bool ReadJsonLine() override {
@@ -68,7 +71,7 @@ public:
         QJsonDocument data = QJsonDocument::fromJson(line.toUtf8(), &error);
 
         if(error.error == QJsonParseError::NoError) {
-            received_data_handler_();
+            json_received_data_handler_(data);
             return true;
         }
         return false;
@@ -123,13 +126,10 @@ public:
 
     // }
 
-signals:
-    void errorOccurred(QString);
-
 private:
     SerialSettings settings_;
     QSerialPort serial_port_;
-    ReceivedDataHandler received_data_handler_;
+    JsonReceivedDataHandler json_received_data_handler_;
 };
 
 }   //transfer namespace

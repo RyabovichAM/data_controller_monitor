@@ -9,21 +9,30 @@
 
 namespace app {
 
+class MU_ObserverBase : public QObject {
+public:
+    MU_ObserverBase(QObject* parent = nullptr);
+    virtual void Update(const QJsonDocument& data);
+    virtual ~MU_ObserverBase() = default;
+};
+
 class MonitorUnit
 {
 public:
     MonitorUnit();
-    MonitorUnit(QWidget* widget_ptr,
-                const MonitorUnitSettings& settings);
+    MonitorUnit(const MonitorUnitSettings& settings);
 
     MonitorUnit(MonitorUnit&&) = default;
     MonitorUnit& operator=(MonitorUnit&&) = default;
 
-    QWidget* GetWidget() const;
+    void SetObserver(MU_ObserverBase* observer);
+    void StartTransmission();
+    void StopTransmission();
 
 private:
-    QWidget* view_;
+    MonitorUnitSettings settings_;
     std::unique_ptr<transfer::TransferInterface> transfer_;
+    MU_ObserverBase* observer_{nullptr};
 };
 
 }   //app

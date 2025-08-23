@@ -9,7 +9,8 @@
 namespace transfer {
 
 using OpenErrorHandler = std::function<void(QString)>;
-using ReceivedDataHandler = std::function<void()>;
+using JsonReceivedDataHandler = std::function<void(const QJsonDocument& data)>;
+using ErrorOcccuredHandler = std::function<void()>;
 
 class TransferInterface : public QObject {
     Q_OBJECT
@@ -23,7 +24,8 @@ public:
     virtual void SetUp(TransferSettings* settings) = 0;
     virtual void Run(QIODeviceBase::OpenMode mode, OpenErrorHandler err_handler) = 0;
     virtual void Stop() = 0;
-    virtual void SetReceivedDataHandler(ReceivedDataHandler handler) = 0;
+    virtual void SetJsonReceivedDataHandler(JsonReceivedDataHandler handler) = 0;
+    virtual void SetErrorOcccuredHandler(ErrorOcccuredHandler handler) = 0;
     virtual bool ReadJsonLine() = 0;
 
 };

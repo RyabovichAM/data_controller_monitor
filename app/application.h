@@ -17,9 +17,7 @@ class Application : public QObject
 public:
     Application();
 
-    MonitorUnit_Iter CreateUnit(QWidget* widget_ptr,
-                                            const MonitorUnitSettings& settings);
-
+    MonitorUnit_Iter CreateUnit(const MonitorUnitSettings& settings);
 
 private:
     std::list<MonitorUnit> mon_units_;
