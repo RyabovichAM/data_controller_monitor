@@ -11,16 +11,20 @@ public:
 };
 
 
+using ValueUpdatedWidgetsByObjName = QHash<QString, QWidget*>;
 class DropArea : public QFrame {
     Q_OBJECT
+
 public:
     DropArea(QWidget* parent = nullptr);
+    ValueUpdatedWidgetsByObjName& GetUpdatebleWidgets();
 
 protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
     void dropEvent(QDropEvent* event) override;
 
 private:
+    ValueUpdatedWidgetsByObjName value_updated_widgets_by_obj_name_;
 };
 
 

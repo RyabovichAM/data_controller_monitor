@@ -7,11 +7,26 @@
 
 namespace ComponentWidgets {
 
+CW_ObserverBase::CW_ObserverBase(QObject* parent)
+    : QObject{parent} {
+}
+
+void CW_ObserverBase::SetOnObjectNameChanged(OnOBjNameChanged on_object_name_changed) {
+    on_object_name_changed_ = on_object_name_changed;
+}
+void CW_ObserverBase::CallOnObjectNameChanged(const QString& prev_name, const QString& name) {
+    on_object_name_changed_(prev_name,name);
+}
+
 Label::Label(QWidget* parent)
     : QLabel("label",parent) {
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     setStyleSheet("background-color: #f0f0f0; border: 1px solid #999;");
     setAttribute(Qt::WA_DeleteOnClose);
+}
+
+void Label::SetObserver(CW_ObserverBase* observer) {
+    observer_ = observer;
 }
 
 void Label::mousePressEvent(QMouseEvent* event) {
@@ -39,6 +54,8 @@ void Label::mouseDoubleClickEvent(QMouseEvent *event) {
         label_stg_wgt.exec();
         LabelSettings label_stg = label_stg_wgt.GetSettings();
         this->setText(label_stg.label);
+        if(observer_)
+            observer_->CallOnObjectNameChanged(this->objectName(), label_stg.object_name);
         this->setObjectName(label_stg.object_name);
         this->setFixedSize(label_stg.width,label_stg.height);
     }

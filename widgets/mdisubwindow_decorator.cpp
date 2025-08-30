@@ -1,6 +1,10 @@
 #include "mdisubwindow_decorator.h"
 
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLayout>
+
+#include "component_widgets.h"
 
 MdiSubWindowDecorator::MdiSubWindowDecorator(QWidget* parent)
     :   QMdiSubWindow{parent}
@@ -27,7 +31,7 @@ void MdiSubWindowDecorator::SetWidget(DropArea* wgt) {
     resize(wgt->size());
 }
 
-QWidget* MdiSubWindowDecorator::View() const {
+DropArea* MdiSubWindowDecorator::View() const {
     return view_;
 }
 
@@ -42,5 +46,10 @@ SubWindow_MU_observer::SubWindow_MU_observer(MdiSubWindowDecorator* subwindow, Q
 }
 
 void SubWindow_MU_observer::Update(const QJsonDocument& data) {
-    //TODO
+    auto json_obj = data.object();
+    auto& updateble_wgts_maps = subwindow_->View()->GetUpdatebleWidgets();
+    for (auto param = json_obj.begin(); param != json_obj.end(); ++param) {
+        auto* wgt = updateble_wgts_maps[param.key()];
+        dynamic_cast<ComponentWidgets::Label*>(wgt)->setText(param.value().toString());
+    }
 }

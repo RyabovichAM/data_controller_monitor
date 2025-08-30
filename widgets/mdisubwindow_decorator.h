@@ -13,7 +13,7 @@ public:
     MdiSubWindowDecorator(QWidget* parent = nullptr);
     void AddMonitorUnit(const app::MonitorUnit_Iter& iter);
     void SetWidget(DropArea* wgt);
-    QWidget* View() const;
+    DropArea* View() const;
     void SetMenuAvailable(bool is_avaibality = true);
 
 private:

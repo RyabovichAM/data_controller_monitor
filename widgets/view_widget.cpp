@@ -14,7 +14,6 @@ DragArea::DragArea(QWidget* parent) : QFrame(parent) {
     main_layout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Expanding));
 
     setLayout(main_layout);
-
 }
 
 DropArea::DropArea(QWidget* parent) : QFrame(parent) {
@@ -39,11 +38,24 @@ void DropArea::dropEvent(QDropEvent* event)  {
         component_widget = component_widget_to_check;
     } else {
         component_widget = ComponentWidgets::CurrentComponentByPtr(component_widget_to_check,this);
+        if(dynamic_cast<ComponentWidgets::Label*>(component_widget)) {
+            auto lbl_ptr = dynamic_cast<ComponentWidgets::Label*>(component_widget);
+            ComponentWidgets::CW_ObserverBase* observer = new ComponentWidgets::CW_ObserverBase{component_widget};
+            observer->SetOnObjectNameChanged([self = this, component_widget](const QString& prev_obj_name, const QString& obj_name){
+                self->value_updated_widgets_by_obj_name_.remove(prev_obj_name);
+                self->value_updated_widgets_by_obj_name_.insert(obj_name,component_widget);
+            });
+            lbl_ptr->SetObserver(observer);
+        }
     }
 
     component_widget->move(event->position().toPoint() - QPoint(component_widget->width()/2, component_widget->height()/2));
     component_widget->show();
     event->accept();
+}
+
+ValueUpdatedWidgetsByObjName& DropArea::GetUpdatebleWidgets() {
+    return value_updated_widgets_by_obj_name_;
 }
 
 ViewWidget::ViewWidget(QWidget *parent)
