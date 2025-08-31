@@ -11,4 +11,8 @@ MonitorUnit_Iter Application::CreateUnit(const MonitorUnitSettings& settings) {
     return --mon_units_.end();
 }
 
+void Application::DeleteUnit(MonitorUnit_Iter& iter) {
+    mon_units_.erase(iter);
+}
+
 }   //app

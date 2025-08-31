@@ -18,6 +18,7 @@ public:
     Application();
 
     MonitorUnit_Iter CreateUnit(const MonitorUnitSettings& settings);
+    void DeleteUnit(MonitorUnit_Iter& iter);
 
 private:
     std::list<MonitorUnit> mon_units_;

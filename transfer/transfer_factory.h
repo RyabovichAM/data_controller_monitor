@@ -12,21 +12,22 @@ class TransferFactory
 {
 public:
     static std::unique_ptr<TransferInterface> CreateTransfer(const std::string& type) {
-        if (type == "serial") {
+        if (type == "Serial") {
             return std::make_unique<SerialTransfer>();
-        } else if (type == "tcpip") {
+        } else if (type == "TCP/IP") {
             //TODO
         }
-        throw std::invalid_argument("Unknown transfer to create");
+        Q_ASSERT("TransferFactory: Unknown transfer to create");
     }
 
     static std::unique_ptr<TransferInterface> CreateTransfer(const QHash<QString,QString>& settings) {
-        if (settings["type"] == "serial") {
+        if (settings["type"] == "Serial") {
             return std::make_unique<SerialTransfer>(settings);
-        } else if (settings["type"] == "tcpip") {
+        } else if (settings["type"] == "TCP/IP") {
             //TODO
+
         }
-        throw std::invalid_argument("Unknown transfer to create");
+        Q_ASSERT("TransferFactory: Unknown transfer to create");
     }
 };
 

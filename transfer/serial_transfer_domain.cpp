@@ -42,7 +42,7 @@ QSerialPort::FlowControl GetFlowControlFromString(QString flowControlStr) {
     if (flowControlStr == "None") return QSerialPort::NoFlowControl;
     else if (flowControlStr == "Hardware") return QSerialPort::HardwareControl;
     else if (flowControlStr == "Software") return QSerialPort::SoftwareControl;
-    else throw std::invalid_argument("transfer::GetStopBitsFromString: invalid argument");
+    else throw std::invalid_argument("transfer::GetFlowControlFromString: invalid argument");
 }
 
 /*
@@ -73,7 +73,7 @@ SerialSettings GetSerialSettingsFromHashMap(const QHash<QString, QString>& setti
     ser_settings.data_bits = GetDataBitsFromString(settings_map.value("data_bits"));
     ser_settings.parity = GetParityFromString(settings_map.value("parity"));
     ser_settings.stop_bits = GetStopBitsFromString(settings_map.value("stop_bits"));
-    ser_settings.flow_control = GetFlowControlFromString(settings_map.value("stop_bits"));
+    ser_settings.flow_control = GetFlowControlFromString(settings_map.value("flow_control"));
     return ser_settings;
 }
 

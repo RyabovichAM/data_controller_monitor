@@ -27,6 +27,8 @@ QHash<QString, QString> TransferSettingsWidget::GetSettings()
 
     QList<QComboBox*> comboboxes = widget->findChildren<QComboBox*>();
 
+    settings["type"] = tabText(currentIndex());
+
     for (QComboBox* combo : comboboxes) {
         settings[combo->objectName()] = combo->currentText();
     }

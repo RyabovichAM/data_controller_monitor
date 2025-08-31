@@ -48,21 +48,6 @@
      <widget class="QComboBox" name="baud_rate">
       <item>
        <property name="text">
-        <string>110</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>300</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>600</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
         <string>1200</string>
        </property>
       </item>
@@ -104,21 +89,6 @@
       <item>
        <property name="text">
         <string>115200</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>230400</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>460800</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>921600</string>
        </property>
       </item>
       <item>
@@ -249,9 +219,9 @@
     </item>
    </layout>
   </widget>
-  <widget class="QWidget" name="tab_tcp">
+  <widget class="QWidget" name="tab_tcpip">
    <attribute name="title">
-    <string>TCP</string>
+    <string>TCP/IP</string>
    </attribute>
   </widget>
  </widget>

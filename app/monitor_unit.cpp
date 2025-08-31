@@ -26,10 +26,14 @@ void MonitorUnit::SetObserver(MU_ObserverBase* observer) {
 void MonitorUnit::StartTransmission() {
     transfer_ = transfer::TransferFactory::CreateTransfer(settings_.transfer);
     transfer_->SetJsonReceivedDataHandler([self = this](const QJsonDocument& data){
-        if(!self->observer_)
+        if(self->observer_)
             self->observer_->Update(data);
     });
+    transfer_->Run(QIODevice::ReadOnly, [self = this](const QString& err){});
+}
 
+void MonitorUnit::StopTransmission() {
+    transfer_->Stop();
 }
 
 }   //app

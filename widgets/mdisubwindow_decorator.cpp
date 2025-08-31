@@ -6,8 +6,9 @@
 
 #include "component_widgets.h"
 
-MdiSubWindowDecorator::MdiSubWindowDecorator(QWidget* parent)
-    :   QMdiSubWindow{parent}
+MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* parent)
+    :   app_{app}
+    , QMdiSubWindow{parent}
     , menu_bar_{new QMenuBar(this)} {
     setAttribute(Qt::WA_DeleteOnClose);
 
@@ -18,8 +19,14 @@ MdiSubWindowDecorator::MdiSubWindowDecorator(QWidget* parent)
     layout()->setMenuBar(menu_bar_);
 }
 
+MdiSubWindowDecorator::~MdiSubWindowDecorator() {
+    MonitorUnit_iter_->StopTransmission();
+    app_.DeleteUnit(MonitorUnit_iter_);
+}
+
 void MdiSubWindowDecorator::AddMonitorUnit(const app::MonitorUnit_Iter& iter) {
     MonitorUnit_iter_ = iter;
+    MonitorUnit_iter_->StartTransmission();
 }
 
 void MdiSubWindowDecorator::SetWidget(DropArea* wgt) {
@@ -50,6 +57,7 @@ void SubWindow_MU_observer::Update(const QJsonDocument& data) {
     auto& updateble_wgts_maps = subwindow_->View()->GetUpdatebleWidgets();
     for (auto param = json_obj.begin(); param != json_obj.end(); ++param) {
         auto* wgt = updateble_wgts_maps[param.key()];
-        dynamic_cast<ComponentWidgets::Label*>(wgt)->setText(param.value().toString());
+        if(wgt != nullptr)
+            dynamic_cast<ComponentWidgets::Label*>(wgt)->setText(param.value().toString());
     }
 }

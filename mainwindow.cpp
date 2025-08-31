@@ -24,7 +24,7 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::ClickNewControllerViewer(bool) {
-    MdiSubWindowDecorator* subWindow = new MdiSubWindowDecorator;
+    MdiSubWindowDecorator* subWindow = new MdiSubWindowDecorator{app_};
 
     MonitorUnitSettingsWidget musw;
     musw.exec();

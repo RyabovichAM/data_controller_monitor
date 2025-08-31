@@ -10,13 +10,15 @@
 class MdiSubWindowDecorator : public QMdiSubWindow
 {
 public:
-    MdiSubWindowDecorator(QWidget* parent = nullptr);
+    MdiSubWindowDecorator(app::Application& app, QWidget* parent = nullptr);
     void AddMonitorUnit(const app::MonitorUnit_Iter& iter);
     void SetWidget(DropArea* wgt);
     DropArea* View() const;
     void SetMenuAvailable(bool is_avaibality = true);
+    ~MdiSubWindowDecorator();
 
 private:
+    app::Application& app_;
     app::MonitorUnit_Iter MonitorUnit_iter_;
     QMenuBar* menu_bar_{nullptr};
     DropArea* view_{nullptr};
