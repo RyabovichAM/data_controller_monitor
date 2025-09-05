@@ -18,11 +18,10 @@ public:
     explicit TransferInterface(QObject *parent = nullptr) : QObject{parent} {
     }
 
-    virtual ~TransferInterface() {
-    }
+    virtual ~TransferInterface() = default;
 
     virtual void SetUp(TransferSettings* settings) = 0;
-    virtual void Run(QIODeviceBase::OpenMode mode, OpenErrorHandler err_handler) = 0;
+    virtual void Run(OpenErrorHandler err_handler) = 0;
     virtual void Stop() = 0;
     virtual void SetJsonReceivedDataHandler(JsonReceivedDataHandler handler) = 0;
     virtual void SetErrorOcccuredHandler(ErrorOcccuredHandler handler) = 0;

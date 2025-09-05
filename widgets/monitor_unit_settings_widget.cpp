@@ -20,14 +20,13 @@ MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(DropArea* parent)
     transfer_stg_wgt_ = new TransferSettingsWidget(ui->transfer_tab);
     QVBoxLayout* transfer_layout = new QVBoxLayout(ui->transfer_tab);
     transfer_layout->addWidget(transfer_stg_wgt_);
+    transfer_layout->addStretch(1);
     ui->transfer_tab->setLayout(transfer_layout);
 }
 
-MonitorUnitSettingsWidget::~MonitorUnitSettingsWidget()
-{
+MonitorUnitSettingsWidget::~MonitorUnitSettingsWidget() {
     delete ui;
 }
-
 
 DropArea* MonitorUnitSettingsWidget::GetWidget() const {
     return view_widget_->GetDropArea();

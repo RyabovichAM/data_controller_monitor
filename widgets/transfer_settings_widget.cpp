@@ -25,12 +25,19 @@ QHash<QString, QString> TransferSettingsWidget::GetSettings()
     QHash<QString, QString> settings;
     auto widget = currentWidget();
 
-    QList<QComboBox*> comboboxes = widget->findChildren<QComboBox*>();
-
     settings["type"] = tabText(currentIndex());
+
+    QList<QComboBox*> comboboxes = widget->findChildren<QComboBox*>();
 
     for (QComboBox* combo : comboboxes) {
         settings[combo->objectName()] = combo->currentText();
     }
+
+    QList<QLineEdit*> lineedits = widget->findChildren<QLineEdit*>();
+
+    for (QLineEdit* lineedit : lineedits) {
+        settings[lineedit->objectName()] = lineedit->text();
+    }
+
     return settings;
 }

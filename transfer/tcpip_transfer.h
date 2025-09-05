@@ -1,21 +1,20 @@
-#ifndef SERIAL_TRANSFER_H
-#define SERIAL_TRANSFER_H
+#ifndef TCPIP_TRANSFER_H
+#define TCPIP_TRANSFER_H
 
-#include <QJsonDocument>
-#include <QTextStream>
+#include <QTcpServer>
 
-#include "transfer_domain.h"
 #include "transfer_interface.h"
-#include "serial_transfer_domain.h"
+#include "tcpip_transfer_domain.h"
 
 namespace transfer {
 
-class SerialTransfer : public TransferInterface {
+class TcpIpTransfer : public TransferInterface
+{
     Q_OBJECT
 public:
-    explicit SerialTransfer(const QHash<QString,QString>& settings,
-                            QObject *parent = nullptr);
-    explicit SerialTransfer(QObject *parent = nullptr);
+    explicit TcpIpTransfer(const QHash<QString,QString>& settings,
+                  QObject *parent = nullptr);
+    explicit TcpIpTransfer(QObject *parent = nullptr);
 
     void SetUp(TransferSettings* settings) override;
     void Run(OpenErrorHandler err_handler) override;
@@ -24,18 +23,20 @@ public:
     void SetErrorOcccuredHandler(ErrorOcccuredHandler handler) override;
     bool ReadJsonLine() override;
 
+public slots:
+    void OnNewConnection();
+
 private:
-    SerialSettings settings_;
-    QSerialPort serial_port_;
+    QTcpServer tcp_server_;
+    TcpIpSettings settings_;
     JsonReceivedDataHandler json_received_data_handler_;
+    ErrorOcccuredHandler  error_occcured_handler_;
 
     QByteArray data_buffer_;
     qsizetype left_idx_{-1};
     qsizetype right_idx_{-1};
-
-    void SetUp(const SerialSettings& settings);
 };
 
-}   //transfer namespace
+}   //transfer
 
-#endif // SERIAL_TRANSFER_H
+#endif // TCPIP_TRANSFER_H

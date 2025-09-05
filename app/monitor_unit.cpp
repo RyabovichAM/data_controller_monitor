@@ -1,5 +1,7 @@
 #include "monitor_unit.h"
 
+#include <QMessageBox>
+
 #include "transfer_factory.h"
 
 namespace app {
@@ -29,7 +31,11 @@ void MonitorUnit::StartTransmission() {
         if(self->observer_)
             self->observer_->Update(data);
     });
-    transfer_->Run(QIODevice::ReadOnly, [self = this](const QString& err){});
+    transfer_->Run([self = this](const QString& err){
+        QMessageBox::warning(nullptr, "Transmission Error",
+                            "Unable to start the transmission: "
+                                 + err);
+    });
 }
 
 void MonitorUnit::StopTransmission() {

@@ -4,6 +4,7 @@
 #include <memory>
 
 #include "transfer_interface.h"
+#include "tcpip_transfer.h"
 #include "serial_transfer.h"
 
 namespace transfer {
@@ -15,7 +16,7 @@ public:
         if (type == "Serial") {
             return std::make_unique<SerialTransfer>();
         } else if (type == "TCP/IP") {
-            //TODO
+            return std::make_unique<TcpIpTransfer>();
         }
         Q_ASSERT("TransferFactory: Unknown transfer to create");
     }
@@ -24,8 +25,7 @@ public:
         if (settings["type"] == "Serial") {
             return std::make_unique<SerialTransfer>(settings);
         } else if (settings["type"] == "TCP/IP") {
-            //TODO
-
+            return std::make_unique<TcpIpTransfer>(settings);
         }
         Q_ASSERT("TransferFactory: Unknown transfer to create");
     }
