@@ -8,6 +8,7 @@ namespace app {
 
 struct MonitorUnitSettings {
     QHash<QString, QString> transfer;
+    QHash<QString, QString> data_storage;
 };
 
 

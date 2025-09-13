@@ -4,7 +4,7 @@
 #include <QFile>
 
 #include "data_storage_interface.h"
-#include "data_storage_settings.h"
+#include "data_storage_domain.h"
 
 namespace data_storage {
 
@@ -12,6 +12,7 @@ template<typename SaveType, typename LoadType = SaveType>
 class CsvDataStorage : public DataStorageInterface<SaveType> {
 public:
     CsvDataStorage() = default;
+    CsvDataStorage(const QHash<QString,QString>& settings);
 
     void SetErrorHandler(ErrorHandler handler) override;
     void DataSave(const SaveType& data) override;
@@ -21,7 +22,7 @@ public:
     void Close() override;
 
 private:
-    ErrorHandler error_handler_;
+    ErrorHandler error_handler_{nullptr};
     QTime last_save_time_;
     QDate last_save_day_;
     DataStorageSettings settings_;
@@ -30,6 +31,11 @@ private:
 
     void NewDayCheckAndChange();
 };
+
+template<typename SaveType, typename LoadType>
+CsvDataStorage<SaveType, LoadType>::CsvDataStorage(const QHash<QString,QString>& settings)
+    : settings_{GetDataStorageSettingsFromHashMap(settings)} {
+}
 
 template<typename SaveType, typename LoadType>
 void CsvDataStorage<SaveType, LoadType>::SetErrorHandler(ErrorHandler handler) {

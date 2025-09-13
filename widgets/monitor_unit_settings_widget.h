@@ -4,6 +4,7 @@
 #include <QDialog>
 
 #include "app_domain.h"
+#include "data_storage_settings_widget.h"
 #include "transfer_settings_widget.h"
 #include "view_widget.h"
 
@@ -25,8 +26,9 @@ public:
 private:
     Ui::MonitorUnitSettingsWidget *ui;
 
-    TransferSettingsWidget* transfer_stg_wgt_{nullptr};
     ViewWidget* view_widget_{nullptr};
+    TransferSettingsWidget* transfer_stg_wgt_{nullptr};
+    DataStorageSettingsWidget* storage_stg_wgt{nullptr};
 };
 
 #endif // MONITOR_UNIT_SETTINGS_WIDGET_H

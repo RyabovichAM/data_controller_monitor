@@ -18,6 +18,7 @@ find_package(Qt6 COMPONENTS Widgets SerialPort Network REQUIRED)
 file(GLOB_RECURSE TRANSFER_SRC transfer/*.cpp transfer/*.h)
 file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widget/*.h)
 file(GLOB_RECURSE APP_SRC app/*.cpp app/*.h)
+file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -27,6 +28,7 @@ set(PROJECT_SOURCES
         ${TRANSFER_SRC}
         ${WIDGETS_SRC}
         ${APP_SRC}
+        ${STORAGE_SRC}
 )
 
 qt_add_executable(data_controller_monitor
@@ -35,7 +37,7 @@ qt_add_executable(data_controller_monitor
 )
 
 
-target_include_directories(data_controller_monitor PRIVATE app/ widgets/ transfer/)
+target_include_directories(data_controller_monitor PRIVATE app/ widgets/ transfer/ data_storage/)
 target_link_libraries(data_controller_monitor PRIVATE Qt6::Widgets Qt6::SerialPort Qt6::Network)
 
 if(QT_VERSION_MAJOR EQUAL 6)
@@ -52,10 +54,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     ${TRANSFER_SRC}
     ${WIDGETS_SRC}
     ${APP_SRC}
+    ${STORAGE_SRC}
     ${TESTS_SRC}
   )
 
-  target_include_directories(data_controller_monitor_tests PRIVATE app/ widgets/ transfer/)
+  target_include_directories(data_controller_monitor_tests PRIVATE app/ widgets/ transfer/ data_storage/)
   target_link_libraries(data_controller_monitor_tests PRIVATE
     Qt6::Widgets Qt6::SerialPort Qt6::Network
     GTest::GTest

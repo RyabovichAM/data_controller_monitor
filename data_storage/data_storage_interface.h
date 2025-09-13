@@ -17,9 +17,9 @@ public:
     virtual void SetErrorHandler(ErrorHandler handler) = 0;
     virtual void DataSave(const SaveType& data) = 0;
     virtual LoadType DataLoad(const QDateTime& from, const QDateTime& to) = 0;
-    virtual bool Open();
-    virtual bool IsOpen();
-    virtual void Close();
+    virtual bool Open() = 0;
+    virtual bool IsOpen() = 0;
+    virtual void Close() = 0;
 };
 
 }   //data_storage

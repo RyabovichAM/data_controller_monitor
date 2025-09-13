@@ -5,6 +5,7 @@
 #include <QWidget>
 
 #include "app_domain.h"
+#include "data_storage_interface.h"
 #include "transfer_interface.h"
 
 namespace app {
@@ -19,8 +20,9 @@ public:
 class MonitorUnit
 {
 public:
-    MonitorUnit();
+    MonitorUnit() = default;
     MonitorUnit(const MonitorUnitSettings& settings);
+    ~MonitorUnit();
 
     MonitorUnit(MonitorUnit&&) = default;
     MonitorUnit& operator=(MonitorUnit&&) = default;
@@ -32,6 +34,7 @@ public:
 private:
     MonitorUnitSettings settings_;
     std::unique_ptr<transfer::TransferInterface> transfer_;
+    std::unique_ptr<data_storage::DataStorageInterface<QString>> data_storage_;
     MU_ObserverBase* observer_{nullptr};
 };
 

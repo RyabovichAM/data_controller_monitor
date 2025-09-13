@@ -17,16 +17,21 @@
    <item row="0" column="0">
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="view_tab">
       <attribute name="title">
-       <string>Tab 2</string>
+       <string>View</string>
       </attribute>
      </widget>
      <widget class="QWidget" name="transfer_tab">
       <attribute name="title">
-       <string>Tab 1</string>
+       <string>Transfer</string>
+      </attribute>
+     </widget>
+     <widget class="QWidget" name="storage_tab">
+      <attribute name="title">
+       <string>Data Storage</string>
       </attribute>
      </widget>
     </widget>

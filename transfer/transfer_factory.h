@@ -19,6 +19,7 @@ public:
             return std::make_unique<TcpIpTransfer>();
         }
         Q_ASSERT("TransferFactory: Unknown transfer to create");
+        return nullptr;
     }
 
     static std::unique_ptr<TransferInterface> CreateTransfer(const QHash<QString,QString>& settings) {
@@ -28,6 +29,7 @@ public:
             return std::make_unique<TcpIpTransfer>(settings);
         }
         Q_ASSERT("TransferFactory: Unknown transfer to create");
+        return nullptr;
     }
 };
 
