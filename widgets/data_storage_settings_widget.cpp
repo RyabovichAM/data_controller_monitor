@@ -23,7 +23,7 @@ QHash<QString, QString> DataStorageSettingsWidget::GetSettings() {
     settings["is_enable"] = "enable";
     settings["type"] = "csv";
     settings["location"] = ui->location->text();
-    settings["period"] = ui->location->text();
+    settings["period"] = ui->period->text();
 
     return settings;
 }

@@ -34,7 +34,9 @@ private:
 
 template<typename SaveType, typename LoadType>
 CsvDataStorage<SaveType, LoadType>::CsvDataStorage(const QHash<QString,QString>& settings)
-    : settings_{GetDataStorageSettingsFromHashMap(settings)} {
+    : settings_{GetDataStorageSettingsFromHashMap(settings)}
+    , last_save_time_{QTime::currentTime()}
+    , last_save_day_{QDate::currentDate()} {
 }
 
 template<typename SaveType, typename LoadType>
@@ -45,13 +47,14 @@ void CsvDataStorage<SaveType, LoadType>::SetErrorHandler(ErrorHandler handler) {
 template<typename SaveType, typename LoadType>
 void CsvDataStorage<SaveType, LoadType>::DataSave(const SaveType& data) {
     QTime current_time = QTime::currentTime();
-    if(current_time.msecsTo(last_save_time_) < settings_.survey_period) {
+
+    if(last_save_time_.msecsTo(current_time) < settings_.survey_period) {
         return;
     }
     last_save_time_ = current_time;
 
-    text_stream_ << current_time.toString();
-    text_stream_ << data;
+    text_stream_ << current_time.toString() << " ";
+    text_stream_ << data << Qt::endl;
 
     NewDayCheckAndChange();
 }
@@ -65,12 +68,11 @@ LoadType CsvDataStorage<SaveType, LoadType>::DataLoad(const QDateTime& from,
 template<typename SaveType, typename LoadType>
 bool CsvDataStorage<SaveType, LoadType>::Open() {
     save_file_.setFileName(settings_.place_of_save + QDate::currentDate().toString());
-    if(!save_file_.open(QIODevice::WriteOnly)) {
+    if(!save_file_.open(QIODevice::ReadWrite | QIODevice::Append)) {
         error_handler_(save_file_.errorString());
         return false;
     }
     text_stream_.setDevice(&save_file_);
-
     return true;
 }
 

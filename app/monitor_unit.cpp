@@ -38,7 +38,7 @@ void MonitorUnit::StartTransmission() {
     transfer_->SetJsonReceivedDataHandler([self = this](const QJsonDocument& data){
         if(self->observer_)
             self->observer_->Update(data);
-        self->data_storage_->DataSave(data.toJson());
+        self->data_storage_->DataSave(data.toJson(QJsonDocument::Compact));
     });
     transfer_->Run([self = this](const QString& err){
         QMessageBox::warning(nullptr, "Transmission Error",
