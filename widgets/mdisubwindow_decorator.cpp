@@ -20,13 +20,13 @@ MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* par
 }
 
 MdiSubWindowDecorator::~MdiSubWindowDecorator() {
-    MonitorUnit_iter_->StopTransmission();
+    MonitorUnit_iter_->Stop();
     app_.DeleteUnit(MonitorUnit_iter_);
 }
 
 void MdiSubWindowDecorator::AddMonitorUnit(const app::MonitorUnit_Iter& iter) {
     MonitorUnit_iter_ = iter;
-    MonitorUnit_iter_->StartTransmission();
+    MonitorUnit_iter_->Start();
 }
 
 void MdiSubWindowDecorator::SetWidget(DropArea* wgt) {

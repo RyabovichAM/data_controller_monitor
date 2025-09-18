@@ -30,6 +30,11 @@ public:
     void SetObserver(MU_ObserverBase* observer);
     void StartTransmission();
     void StopTransmission();
+    void InitDataSaving();
+    void DeinitDataSaving();
+
+    void Start();
+    void Stop();
 
 private:
     MonitorUnitSettings settings_;
