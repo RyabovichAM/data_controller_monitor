@@ -15,7 +15,8 @@ void CW_ObserverBase::SetOnObjectNameChanged(OnOBjNameChanged on_object_name_cha
     on_object_name_changed_ = on_object_name_changed;
 }
 void CW_ObserverBase::CallOnObjectNameChanged(const QString& prev_name, const QString& name) {
-    on_object_name_changed_(prev_name,name);
+    if(on_object_name_changed_)
+        on_object_name_changed_(prev_name,name);
 }
 
 Label::Label(QWidget* parent)

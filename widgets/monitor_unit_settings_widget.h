@@ -12,21 +12,20 @@ namespace Ui {
 class MonitorUnitSettingsWidget;
 }
 
-class MonitorUnitSettingsWidget : public QDialog
-{
+class MonitorUnitSettingsWidget : public QDialog {
     Q_OBJECT
 
 public:
-    explicit MonitorUnitSettingsWidget(DropArea* parent = nullptr);
+    explicit MonitorUnitSettingsWidget(view_widget::Canvas* parent = nullptr);
     ~MonitorUnitSettingsWidget();
 
     const app::MonitorUnitSettings GetSettings() const;
-    DropArea* GetWidget() const;
+    view_widget::Canvas* GetWidget() const;
 
 private:
     Ui::MonitorUnitSettingsWidget *ui;
 
-    ViewWidget* view_widget_{nullptr};
+    view_widget::ViewWidget* view_widget_{nullptr};
     TransferSettingsWidget* transfer_stg_wgt_{nullptr};
     DataStorageSettingsWidget* storage_stg_wgt{nullptr};
 };

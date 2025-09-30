@@ -1,7 +1,7 @@
 #include "monitor_unit_settings_widget.h"
 #include "ui_monitor_unit_settings_widget.h"
 
-MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(DropArea* parent)
+MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(view_widget::Canvas* parent)
     : QDialog(parent)
     , ui(new Ui::MonitorUnitSettingsWidget)
 {
@@ -9,14 +9,12 @@ MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(DropArea* parent)
     setModal(true);
 
     //view widget
-    // ui->tabWidget->setTabText(0, "View");
-    view_widget_ = new ViewWidget(ui->view_tab);
+    view_widget_ = new view_widget::ViewWidget(ui->view_tab);
     QVBoxLayout* view_layout = new QVBoxLayout(ui->view_tab);
     view_layout->addWidget(view_widget_);
     ui->view_tab->setLayout(view_layout);
 
     //transfer widget
-    // ui->tabWidget->setTabText(1, "Transfer");
     transfer_stg_wgt_ = new TransferSettingsWidget(ui->transfer_tab);
     QVBoxLayout* transfer_layout = new QVBoxLayout(ui->transfer_tab);
     transfer_layout->addWidget(transfer_stg_wgt_);
@@ -35,8 +33,8 @@ MonitorUnitSettingsWidget::~MonitorUnitSettingsWidget() {
     delete ui;
 }
 
-DropArea* MonitorUnitSettingsWidget::GetWidget() const {
-    return view_widget_->GetDropArea();
+view_widget::Canvas* MonitorUnitSettingsWidget::GetWidget() const {
+    return view_widget_->GetCanvas();
 }
 
 const app::MonitorUnitSettings MonitorUnitSettingsWidget::GetSettings() const {

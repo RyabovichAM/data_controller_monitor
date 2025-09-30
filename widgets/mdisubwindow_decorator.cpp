@@ -29,7 +29,7 @@ void MdiSubWindowDecorator::AddMonitorUnit(const app::MonitorUnit_Iter& iter) {
     MonitorUnit_iter_->Start();
 }
 
-void MdiSubWindowDecorator::SetWidget(DropArea* wgt) {
+void MdiSubWindowDecorator::SetWidget(view_widget::Canvas* wgt) {
     view_ = wgt;
     setWidget(wgt);
     for(auto component_wgt : wgt->findChildren<QWidget*>()) {
@@ -38,7 +38,7 @@ void MdiSubWindowDecorator::SetWidget(DropArea* wgt) {
     resize(wgt->size());
 }
 
-DropArea* MdiSubWindowDecorator::View() const {
+view_widget::Canvas* MdiSubWindowDecorator::View() const {
     return view_;
 }
 
