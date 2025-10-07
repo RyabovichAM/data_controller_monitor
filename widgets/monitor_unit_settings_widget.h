@@ -6,7 +6,7 @@
 #include "app_domain.h"
 #include "data_storage_settings_widget.h"
 #include "transfer_settings_widget.h"
-#include "view_widget.h"
+#include "view_widget/view_widget.h"
 
 namespace Ui {
 class MonitorUnitSettingsWidget;

@@ -1,83 +1,57 @@
-#include "view_widget.h"
+#include "canvas.h"
 
-#include <QMimeData>
+#include <QApplication>
+
+#include <QPainter>
+#include <QPaintEvent>
+#include <QPen>
+
+#include "component_widgets.h"
 
 namespace view_widget {
 
-LayoutEventFilter::LayoutEventFilter(QVBoxLayout* layout, QObject* parent)
-    : QObject(parent), layout_(layout) {
-    for (int i = 0; i < layout_->count(); ++i) {
-        QWidget* widget = layout_->itemAt(i)->widget();
-        if (widget) {
-            widget->installEventFilter(this);
-        }
+QString Shape::TypeToString() {
+    switch (tool_type) {
+    case ComponentWidgetIndex::Label:
+        return "Label";
+    case ComponentWidgetIndex::Rectangle:
+        return "Rectangle";
+    case ComponentWidgetIndex::Ellipse:
+        return "Ellipse";
+    case ComponentWidgetIndex::Line:
+        return "Line";
+    case ComponentWidgetIndex::Brush:
+        return "Brush";
+    default:
+        Q_ASSERT("View_widget: Shape::TypeToString - unprocessed type");
     }
-    SetDefaultStyle();
-}
-
-bool LayoutEventFilter::eventFilter(QObject* obj, QEvent* event) {
-    if (event->type() == QEvent::MouseButtonPress) {
-        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-        if (mouseEvent->button() == Qt::LeftButton) {
-            QWidget* widget = qobject_cast<QWidget*>(obj);
-            if (widget) {
-                HandleWidgetClick(widget);
-                return true;
-            }
-        }
-    }
-    return QObject::eventFilter(obj, event);
-}
-
-void LayoutEventFilter::HandleWidgetClick(QWidget* widget) {
-    int index = layout_->indexOf(widget);
-    if (index != -1) {
-        SetDefaultStyle();
-        widget->setStyleSheet("border: 2px solid black; padding: 5px; background-color: gray;");
-        emit cellSelected(index);
-    }
-}
-
-void LayoutEventFilter::SetDefaultStyle() {
-    for (int i = 0; i < layout_->count(); ++i) {
-        QWidget* w = layout_->itemAt(i)->widget();
-        if (w) {
-            w->setStyleSheet("border: 1px solid gray; padding: 5px;");
-        }
-    }
-}
-
-ToolWidget::ToolWidget(QWidget* parent) : QWidget(parent) {
-    setStyleSheet("border: 2px dashed #aaa;");
-
-    QVBoxLayout* main_layout = new QVBoxLayout{this};
-    main_layout->addWidget(new ComponentWidgets::Label{this});
-    main_layout->addWidget(new QLabel{"Rectangle",this});
-    main_layout->addWidget(new QLabel{"Ellipse", this});
-    main_layout->addWidget(new QLabel{"Line", this});
-    main_layout->addWidget(new QLabel{"Brush",this});
-    main_layout->addSpacerItem(new QSpacerItem(0, 0,
-                                QSizePolicy::Expanding, QSizePolicy::Expanding));
-
-    setLayout(main_layout);
-
-    event_filter_ = new LayoutEventFilter(main_layout, this);
-    connect(event_filter_, &LayoutEventFilter::cellSelected,
-            this, &ToolWidget::OnCellSelected);
-}
-
-void ToolWidget::OnCellSelected(int index) {
-    comp_wgt_index_ = static_cast<ComponentWidgetIndex>(index);
-    emit saveCurrentTool(comp_wgt_index_);
+    return {};
 }
 
 Canvas::Canvas(QWidget* parent) : QFrame(parent) {
     setAcceptDrops(true);
     setStyleSheet("background-color: white; border: 2px dashed #aaa;");
+
+    QScreen *screen = QApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    setMinimumSize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.4);
 }
 
-void Canvas::SetCurrentCell(ComponentWidgetIndex idx) {
+ValueUpdatedWidgetsByObjName& Canvas::GetUpdatebleWidgets() {
+    return value_updated_widgets_by_obj_name_;
+}
+
+QList<view_widget::Shape>& Canvas::GetShapes() {
+    return shapes_;
+}
+
+void Canvas::SetCurrentComponentWidgetIndex(ComponentWidgetIndex idx) {
     current_tool_ = idx;
+}
+
+void Canvas::DeleteShapeByIndex(int index) {
+    shapes_.removeAt(index);
+    update();
 }
 
 void Canvas::dragEnterEvent(QDragEnterEvent* event) {
@@ -111,10 +85,6 @@ void Canvas::dropEvent(QDropEvent* event)  {
     component_widget->move(event->position().toPoint() - QPoint(component_widget->width()/2, component_widget->height()/2));
     component_widget->show();
     event->accept();
-}
-
-ValueUpdatedWidgetsByObjName& Canvas::GetUpdatebleWidgets() {
-    return value_updated_widgets_by_obj_name_;
 }
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
@@ -153,6 +123,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
         shapes_.append(current_shape_);
         update();
     }
+    emit FigureAdded(current_shape_.TypeToString());
 }
 
 void Canvas::paintEvent(QPaintEvent *event) {
@@ -161,7 +132,7 @@ void Canvas::paintEvent(QPaintEvent *event) {
     painter.setRenderHint(QPainter::Antialiasing, true);
 
 
-    for (const Shape& shape : shapes_) {
+    for (const view_widget::Shape& shape : shapes_) {
         painter.setPen(QPen(shape.color, 2));
         painter.setBrush(QBrush(shape.color, Qt::NoBrush));
 
@@ -174,7 +145,7 @@ void Canvas::paintEvent(QPaintEvent *event) {
     }
 }
 
-void Canvas::DrawShape(const Shape& shape, QPainter& painter) {
+void Canvas::DrawShape(const view_widget::Shape& shape, QPainter& painter) {
     switch (shape.tool_type) {
     case ComponentWidgetIndex::Rectangle:
         painter.drawRect(QRect(shape.points.first(),
@@ -196,27 +167,6 @@ void Canvas::DrawShape(const Shape& shape, QPainter& painter) {
     case ComponentWidgetIndex::Label:
         Q_ASSERT("Label no drawable");
     }
-}
-
-ViewWidget::ViewWidget(QWidget *parent)
-    : QWidget{parent} , canvas_{new Canvas{this}} {
-    setWindowTitle("View Widget");
-    setGeometry(100, 100, 800, 600);
-
-    QHBoxLayout* layout = new QHBoxLayout{};
-    setLayout(layout);
-
-    tool_wgt_ = new ToolWidget{this};
-    layout->addWidget(tool_wgt_,1);
-
-    connect(tool_wgt_, &ToolWidget::saveCurrentTool,
-            canvas_, &Canvas::SetCurrentCell);
-
-    layout->addWidget(canvas_,4);
-}
-
-Canvas* ViewWidget::GetCanvas() {
-    return canvas_;
 }
 
 }   //view_widget

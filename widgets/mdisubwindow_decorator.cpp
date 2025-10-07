@@ -4,7 +4,7 @@
 #include <QJsonObject>
 #include <QLayout>
 
-#include "component_widgets.h"
+#include "view_widget/component_widgets.h"
 
 MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* parent)
     :   app_{app}

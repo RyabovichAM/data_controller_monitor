@@ -34,6 +34,10 @@ set(PROJECT_SOURCES
 qt_add_executable(data_controller_monitor
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES}
+    widgets/view_widget/tool_widget.h widgets/view_widget/tool_widget.cpp
+    widgets/view_widget/domain.h widgets/view_widget/domain.cpp
+    widgets/view_widget/canvas.h widgets/view_widget/canvas.cpp
+    widgets/view_widget/canvases_objects_view.h widgets/view_widget/canvases_objects_view.cpp
 )
 
 

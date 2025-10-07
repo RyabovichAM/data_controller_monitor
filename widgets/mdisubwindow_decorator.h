@@ -5,7 +5,7 @@
 #include <QMenuBar>
 
 #include "application.h"
-#include "view_widget.h"
+#include "view_widget/view_widget.h"
 
 class MdiSubWindowDecorator : public QMdiSubWindow
 {
