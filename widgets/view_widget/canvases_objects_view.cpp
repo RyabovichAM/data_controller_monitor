@@ -4,12 +4,12 @@
 
 namespace view_widget {
 
-CanvasesFiguresList::CanvasesFiguresList(QWidget* parent)
+CanvasesItemsList::CanvasesItemsList(QWidget* parent)
     : QListWidget{parent} {
     setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
-void CanvasesFiguresList::keyPressEvent(QKeyEvent *event) {
+void CanvasesItemsList::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Delete) {
         QListWidgetItem *currentItem = this->currentItem();
 
@@ -34,16 +34,25 @@ void CanvasesFiguresList::keyPressEvent(QKeyEvent *event) {
 CanvasesObjectsView::CanvasesObjectsView(Canvas* canvas, QWidget* parent)
     : canvas_{canvas}
     , QWidget{parent}
-    , figures_{new CanvasesFiguresList{this}}
-    , objects_{new QListWidget{this}} {
+    , figures_{new CanvasesItemsList{this}}
+    , objects_{new CanvasesItemsList{this}} {
     QVBoxLayout* layout = new QVBoxLayout{};
 
-    connect(canvas, &Canvas::FigureAdded, this, [self = this] (const QString&
-                                                                  figure_type) {
-        self->figures_->addItem(figure_type);
+    connect(canvas_, &Canvas::ItemAdded, this, [self = this] (ComponentWidgetIndex idx) {
+        if(idx == ComponentWidgetIndex::None) {
+            return;
+        }
+        if(idx == ComponentWidgetIndex::Label) {
+            self->objects_->addItem(ComponentWidgetIndexToString(idx));
+            return;
+        }
+        self->figures_->addItem(ComponentWidgetIndexToString(idx));
     });
-    connect(figures_, &CanvasesFiguresList::deleteItem,
+    connect(figures_, &CanvasesItemsList::deleteItem,
                 canvas, &Canvas::DeleteShapeByIndex);
+
+    connect(objects_, &CanvasesItemsList::deleteItem,
+            canvas, &Canvas::DeleteObjectByIndex);
 
     layout->addWidget(figures_);
     layout->addWidget(objects_);

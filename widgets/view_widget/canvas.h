@@ -12,7 +12,7 @@ struct Shape {
     ComponentWidgetIndex tool_type;
     QList<QPoint> points;
 
-    QString TypeToString();
+    QString TypeToString() const;
 };
 
 using ValueUpdatedWidgetsByObjName = QHash<QString, QWidget*>;
@@ -28,6 +28,7 @@ public:
 public slots:
     void SetCurrentComponentWidgetIndex(ComponentWidgetIndex idx);
     void DeleteShapeByIndex(int index);
+    void DeleteObjectByIndex(int index);
 
 protected:
     void dragEnterEvent(QDragEnterEvent* event) override;
@@ -47,7 +48,7 @@ private:
     void DrawShape(const view_widget::Shape& shape, QPainter& painter);
 
 signals:
-    void FigureAdded(const QString& figure_type);
+    void ItemAdded(ComponentWidgetIndex idx);
 };
 
 }   //view_widget

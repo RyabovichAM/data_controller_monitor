@@ -10,22 +10,8 @@
 
 namespace view_widget {
 
-QString Shape::TypeToString() {
-    switch (tool_type) {
-    case ComponentWidgetIndex::Label:
-        return "Label";
-    case ComponentWidgetIndex::Rectangle:
-        return "Rectangle";
-    case ComponentWidgetIndex::Ellipse:
-        return "Ellipse";
-    case ComponentWidgetIndex::Line:
-        return "Line";
-    case ComponentWidgetIndex::Brush:
-        return "Brush";
-    default:
-        Q_ASSERT("View_widget: Shape::TypeToString - unprocessed type");
-    }
-    return {};
+QString Shape::TypeToString() const {
+    return ComponentWidgetIndexToString(tool_type);
 }
 
 Canvas::Canvas(QWidget* parent) : QFrame(parent) {
@@ -52,6 +38,18 @@ void Canvas::SetCurrentComponentWidgetIndex(ComponentWidgetIndex idx) {
 void Canvas::DeleteShapeByIndex(int index) {
     shapes_.removeAt(index);
     update();
+}
+
+void Canvas::DeleteObjectByIndex(int index) {
+    QObjectList children = this->children();
+    if (index < 0 || index >= children.size()) {
+        return;
+    }
+
+    QObject* child = children.at(index);
+    if (ComponentWidgets::Label* label = dynamic_cast<ComponentWidgets::Label*>(child)) {
+        label->close();
+    }
 }
 
 void Canvas::dragEnterEvent(QDragEnterEvent* event) {
@@ -91,9 +89,10 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         if(current_tool_ == ComponentWidgetIndex::Label) {
             ComponentWidgets::Label* label =  new ComponentWidgets::Label{this};
-            label->move(event->position().toPoint() - QPoint(label->width()/2, label->height()/2));
+            label->move(event->position().toPoint());
             label->show();
             event->accept();
+            emit ItemAdded(current_tool_);
             return;
         }
 
@@ -121,9 +120,9 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton && drawing_) {
         drawing_ = false;
         shapes_.append(current_shape_);
+        emit ItemAdded(current_tool_);
         update();
     }
-    emit FigureAdded(current_shape_.TypeToString());
 }
 
 void Canvas::paintEvent(QPaintEvent *event) {

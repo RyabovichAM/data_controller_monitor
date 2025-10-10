@@ -9,10 +9,10 @@
 
 namespace view_widget {
 
-class CanvasesFiguresList : public QListWidget {
+class CanvasesItemsList : public QListWidget {
     Q_OBJECT
 public:
-    CanvasesFiguresList(QWidget* parent = nullptr);
+    CanvasesItemsList(QWidget* parent = nullptr);
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -28,8 +28,8 @@ public:
 
 private:
     Canvas* canvas_;
-    CanvasesFiguresList* figures_;
-    QListWidget* objects_;
+    CanvasesItemsList* figures_;
+    CanvasesItemsList* objects_;
 };
 
 }   //view_widget

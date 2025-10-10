@@ -54,6 +54,7 @@ ToolWidget::ToolWidget(QWidget* parent) : QWidget(parent) {
     setStyleSheet("border: 2px dashed #aaa;");
 
     QVBoxLayout* main_layout = new QVBoxLayout{this};
+    main_layout->addWidget(new QLabel{"None", this});
     main_layout->addWidget(new ComponentWidgets::Label{this});
     main_layout->addWidget(new QLabel{"Rectangle",this});
     main_layout->addWidget(new QLabel{"Ellipse", this});

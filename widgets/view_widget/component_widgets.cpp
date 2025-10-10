@@ -63,13 +63,10 @@ void Label::mouseDoubleClickEvent(QMouseEvent *event) {
 }
 
 void Label::showContextMenu(const QPoint& pos) {
-    QMenu menu(this);
-
-    QAction* action1 = menu.addAction("Delete");
-
-    connect(action1, &QAction::triggered, [self = this]() { self->close(); });
-
-    menu.exec(mapToGlobal(pos));
+    // QMenu menu(this);
+    // QAction* action1 = menu.addAction("Delete");
+    // connect(action1, &QAction::triggered, [self = this]() { self->close(); });
+    // menu.exec(mapToGlobal(pos));
 }
 
 QWidget* CurrentComponentByPtr(QWidget* component, QWidget* parent) {
