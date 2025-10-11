@@ -30,7 +30,7 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *event) override;
 
 private:
-    CW_ObserverBase* observer_;
+    CW_ObserverBase* observer_{nullptr};
     void showContextMenu(const QPoint& pos);
 };
 

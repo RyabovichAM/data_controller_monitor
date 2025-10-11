@@ -18,13 +18,11 @@ LabelSettingsWidget::LabelSettingsWidget(QWidget *parent, const QString& label,
     SetUp();
 }
 
-LabelSettingsWidget::~LabelSettingsWidget()
-{
+LabelSettingsWidget::~LabelSettingsWidget() {
     delete ui;
 }
 
-void LabelSettingsWidget::on_buttonBox_accepted()
-{
+void LabelSettingsWidget::on_buttonBox_accepted() {
     SetUp();
 }
 
@@ -32,8 +30,7 @@ const LabelSettings& LabelSettingsWidget::GetSettings() const {
     return settings_;
 }
 
-void LabelSettingsWidget::on_buttonBox_rejected()
-{
+void LabelSettingsWidget::on_buttonBox_rejected() {
     close();
 }
 

@@ -60,25 +60,9 @@ void Canvas::dropEvent(QDropEvent* event)  {
     QString text = event->mimeData()->text();
     quintptr ptr = text.toULongLong();
 
-    QWidget* component_widget_to_check = reinterpret_cast<QWidget*>(ptr);
-    if(component_widget_to_check == nullptr)
+    QWidget* component_widget = reinterpret_cast<QWidget*>(ptr);
+    if(component_widget == nullptr)
         return;
-
-    QWidget* component_widget;
-    if(component_widget_to_check->parent() == this) {
-        component_widget = component_widget_to_check;
-    } else {
-        component_widget = ComponentWidgets::CurrentComponentByPtr(component_widget_to_check,this);
-        if(dynamic_cast<ComponentWidgets::Label*>(component_widget)) {
-            auto lbl_ptr = dynamic_cast<ComponentWidgets::Label*>(component_widget);
-            ComponentWidgets::CW_ObserverBase* observer = new ComponentWidgets::CW_ObserverBase{component_widget};
-            observer->SetOnObjectNameChanged([self = this, component_widget](const QString& prev_obj_name, const QString& obj_name){
-                self->value_updated_widgets_by_obj_name_.remove(prev_obj_name);
-                self->value_updated_widgets_by_obj_name_.insert(obj_name,component_widget);
-            });
-            lbl_ptr->SetObserver(observer);
-        }
-    }
 
     component_widget->move(event->position().toPoint() - QPoint(component_widget->width()/2, component_widget->height()/2));
     component_widget->show();
@@ -89,6 +73,14 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         if(current_tool_ == ComponentWidgetIndex::Label) {
             ComponentWidgets::Label* label =  new ComponentWidgets::Label{this};
+
+            ComponentWidgets::CW_ObserverBase* observer = new ComponentWidgets::CW_ObserverBase{label};
+            observer->SetOnObjectNameChanged([self = this, label](const QString& prev_obj_name, const QString& obj_name){
+                self->value_updated_widgets_by_obj_name_.remove(prev_obj_name);
+                self->value_updated_widgets_by_obj_name_.insert(obj_name,label);
+            });
+            label->SetObserver(observer);
+
             label->move(event->position().toPoint());
             label->show();
             event->accept();
