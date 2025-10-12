@@ -20,7 +20,7 @@ void CW_ObserverBase::CallOnObjectNameChanged(const QString& prev_name, const QS
 }
 
 Label::Label(QWidget* parent)
-    : QLabel("label",parent) {
+    : QLabel("Label",parent) {
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     setStyleSheet("background-color: #f0f0f0; border: 1px solid #999;");
     setAttribute(Qt::WA_DeleteOnClose);
@@ -32,15 +32,10 @@ void Label::SetObserver(CW_ObserverBase* observer) {
 
 void Label::mousePressEvent(QMouseEvent* event) {
     if (event->button() == Qt::LeftButton) {
-
         QDrag* drag = new QDrag(this);
         QMimeData* mimeData = new QMimeData;
-
-        // Pass a pointer to this widget (in text form)
         mimeData->setText(QString::number((quintptr)this));
         drag->setMimeData(mimeData);
-
-        // Launch drag and drop (MoveAction - implies moving)
         drag->exec(Qt::MoveAction);
     }
     if (event->button() == Qt::RightButton) {

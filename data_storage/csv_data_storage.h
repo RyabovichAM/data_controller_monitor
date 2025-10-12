@@ -69,7 +69,9 @@ template<typename SaveType, typename LoadType>
 bool CsvDataStorage<SaveType, LoadType>::Open() {
     save_file_.setFileName(settings_.place_of_save + QDate::currentDate().toString());
     if(!save_file_.open(QIODevice::ReadWrite | QIODevice::Append)) {
-        error_handler_(save_file_.errorString());
+        if(error_handler_) {
+            error_handler_(save_file_.errorString());
+        }
         return false;
     }
     text_stream_.setDevice(&save_file_);

@@ -34,14 +34,9 @@ set(PROJECT_SOURCES
 qt_add_executable(data_controller_monitor
     MANUAL_FINALIZATION
     ${PROJECT_SOURCES}
-    widgets/view_widget/tool_widget.h widgets/view_widget/tool_widget.cpp
-    widgets/view_widget/domain.h widgets/view_widget/domain.cpp
-    widgets/view_widget/canvas.h widgets/view_widget/canvas.cpp
-    widgets/view_widget/canvases_objects_view.h widgets/view_widget/canvases_objects_view.cpp
 )
 
-
-target_include_directories(data_controller_monitor PRIVATE app/ widgets/ transfer/ data_storage/)
+target_include_directories(data_controller_monitor PRIVATE app/ data_storage/ transfer/ widgets/ widgets/view_widget)
 target_link_libraries(data_controller_monitor PRIVATE Qt6::Widgets Qt6::SerialPort Qt6::Network)
 
 if(QT_VERSION_MAJOR EQUAL 6)

@@ -5,6 +5,8 @@
 #include "transfer_factory.h"
 #include "data_storage_factory.h"
 
+#include <iostream>
+
 namespace app {
 
 MU_ObserverBase::MU_ObserverBase(QObject* parent)
@@ -24,6 +26,10 @@ MonitorUnit::~MonitorUnit() {
 
 void MonitorUnit::SetObserver(MU_ObserverBase* observer) {
     observer_ = observer;
+}
+
+void MonitorUnit::SetName(const QString& name) {
+    mu_unit_name_ = name;
 }
 
 void MonitorUnit::StartTransmission() {
@@ -59,13 +65,17 @@ void MonitorUnit::InitDataSaving() {
     if(settings_.data_storage["is_enable"] == "not_enable") {
         return;
     }
+    std::cout << settings_.data_storage["location"].toStdString() << std::endl;
+    std::cout << mu_unit_name_.toStdString() << std::endl;
+    settings_.data_storage["location"] += mu_unit_name_ + "/";
+    std::cout << settings_.data_storage["location"].toStdString() << std::endl;
     data_storage_ = data_storage::DataStorageFactory::CreateDataStorage<QString>(
                                                 settings_.data_storage);
-    data_storage_->Open();
-    data_storage_->SetErrorHandler([](const QString& error) {
+    data_storage_->SetErrorHandler([self = this](const QString& error) {
         QMessageBox::warning(nullptr, "DataStorage Error",
                              error);
     });
+    data_storage_->Open();
 }
 void MonitorUnit::DeinitDataSaving() {
     if(data_storage_) {

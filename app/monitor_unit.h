@@ -28,6 +28,7 @@ public:
     MonitorUnit& operator=(MonitorUnit&&) = default;
 
     void SetObserver(MU_ObserverBase* observer);
+    void SetName(const QString& name);
     void StartTransmission();
     void StopTransmission();
     void InitDataSaving();
@@ -41,6 +42,7 @@ private:
     std::unique_ptr<transfer::TransferInterface> transfer_;
     std::unique_ptr<data_storage::DataStorageInterface<QString>> data_storage_;
     MU_ObserverBase* observer_{nullptr};
+    QString mu_unit_name_;
 };
 
 }   //app
