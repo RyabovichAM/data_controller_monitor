@@ -1,13 +1,14 @@
 #ifndef DATA_STORAGE_INTERFACE_H
 #define DATA_STORAGE_INTERFACE_H
 
+#include <functional>
 #include <QDateTime>
 
 namespace data_storage {
 
 using ErrorHandler = std::function<void(const QString&)>;
 
-template<typename SaveType, typename LoadType = SaveType>
+template<typename SaveType, typename LoadType>
 class DataStorageInterface
 {
 public:

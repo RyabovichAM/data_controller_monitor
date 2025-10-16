@@ -59,7 +59,7 @@ void MonitorUnit::InitDataSaving() {
     if(settings_.data_storage["is_enable"] == "not_enable") {
         return;
     }
-    data_storage_ = data_storage::DataStorageFactory::CreateDataStorage<QString>(
+    data_storage_ = data_storage::DataStorageFactory::CreateDataStorage<QString,QList<QPair<QDateTime,QJsonDocument>>>(
                                                 settings_.data_storage);
     data_storage_->Open();
     data_storage_->SetErrorHandler([](const QString& error) {

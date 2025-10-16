@@ -39,7 +39,7 @@ public:
 private:
     MonitorUnitSettings settings_;
     std::unique_ptr<transfer::TransferInterface> transfer_;
-    std::unique_ptr<data_storage::DataStorageInterface<QString>> data_storage_;
+    std::unique_ptr<data_storage::DataStorageInterface<QString,QList<QPair<QDateTime,QJsonDocument>>>> data_storage_;
     MU_ObserverBase* observer_{nullptr};
 };
 
