@@ -26,6 +26,10 @@ void MonitorUnit::SetObserver(MU_ObserverBase* observer) {
     observer_ = observer;
 }
 
+void MonitorUnit::SetName(const QString& name) {
+    mu_unit_name_ = name;
+}
+
 void MonitorUnit::StartTransmission() {
     transfer_ = transfer::TransferFactory::CreateTransfer(settings_.transfer);
 
@@ -59,13 +63,15 @@ void MonitorUnit::InitDataSaving() {
     if(settings_.data_storage["is_enable"] == "not_enable") {
         return;
     }
+
+    settings_.data_storage["location"] += mu_unit_name_ + "/";
     data_storage_ = data_storage::DataStorageFactory::CreateDataStorage<QString,QList<QPair<QDateTime,QJsonDocument>>>(
                                                 settings_.data_storage);
-    data_storage_->Open();
-    data_storage_->SetErrorHandler([](const QString& error) {
+    data_storage_->SetErrorHandler([self = this](const QString& error) {
         QMessageBox::warning(nullptr, "DataStorage Error",
                              error);
     });
+    data_storage_->Open();
 }
 void MonitorUnit::DeinitDataSaving() {
     if(data_storage_) {

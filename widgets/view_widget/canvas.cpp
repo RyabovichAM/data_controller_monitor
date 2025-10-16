@@ -31,6 +31,14 @@ QList<view_widget::Shape>& Canvas::GetShapes() {
     return shapes_;
 }
 
+void Canvas::SetLabel(const QString& label) {
+    label_ = label;
+}
+
+QString Canvas::GetLabel() const {
+    return label_;
+}
+
 void Canvas::SetCurrentComponentWidgetIndex(ComponentWidgetIndex idx) {
     current_tool_ = idx;
 }

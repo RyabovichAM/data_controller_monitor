@@ -9,8 +9,7 @@ MainWindow::MainWindow(app::Application& app, QWidget *parent)
     : QMainWindow(parent)
     , app_{app}
     , ui(new Ui::MainWindow)
-    , mdi_area_{}
-{
+    , mdi_area_{} {
     ui->setupUi(this);
     setCentralWidget(&mdi_area_);
 
@@ -33,8 +32,9 @@ void MainWindow::ClickNewControllerViewer(bool) {
 
     auto unit_iter = app_.CreateUnit(musw.GetSettings());
     unit_iter->SetObserver(subWindow_observer);
-
+    unit_iter->SetName(musw.GetWidget()->GetLabel());
     subWindow->AddMonitorUnit(unit_iter);
+    subWindow->setWindowTitle(musw.GetWidget()->GetLabel());
     subWindow->SetWidget(musw.GetWidget());
 
     mdi_area_.addSubWindow(subWindow);

@@ -24,6 +24,8 @@ public:
     Canvas(QWidget* parent = nullptr);
     ValueUpdatedWidgetsByObjName& GetUpdatebleWidgets();
     QList<view_widget::Shape>& GetShapes();
+    void SetLabel(const QString& label);
+    QString GetLabel() const;
 
 public slots:
     void SetCurrentComponentWidgetIndex(ComponentWidgetIndex idx);
@@ -44,6 +46,7 @@ private:
     QList<view_widget::Shape> shapes_;
     view_widget::Shape current_shape_;
     bool drawing_;
+    QString label_;
 
     void DrawShape(const view_widget::Shape& shape, QPainter& painter);
 
