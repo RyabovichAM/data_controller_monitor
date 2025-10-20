@@ -30,6 +30,11 @@ void MonitorUnit::SetName(const QString& name) {
     mu_unit_name_ = name;
 }
 
+data_storage::DataStorageInterface<MonitorUnit::DataStorageSaveType, MonitorUnit::DataStorageLoadType>*
+        MonitorUnit::DataStorage() const {
+    return data_storage_.get();
+}
+
 void MonitorUnit::StartTransmission() {
     transfer_ = transfer::TransferFactory::CreateTransfer(settings_.transfer);
 
@@ -73,6 +78,7 @@ void MonitorUnit::InitDataSaving() {
     });
     data_storage_->Open();
 }
+
 void MonitorUnit::DeinitDataSaving() {
     if(data_storage_) {
         data_storage_->Close();

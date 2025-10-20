@@ -5,6 +5,7 @@
 #include <QLayout>
 
 #include "view_widget/component_widgets.h"
+#include "charts/charts_widget.h"
 
 MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* parent)
     :   app_{app}
@@ -15,6 +16,16 @@ MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* par
 
     QMenu *fileMenu = menu_bar_->addMenu("File");
     fileMenu->addAction("Close", this, &QMdiSubWindow::close);
+
+    QMenu *chartMenu = menu_bar_->addMenu("Chart");
+    chartMenu->addAction("Chart", this, [self = this]() {
+        using DataStorageType = data_storage::DataStorageInterface
+            <app::MonitorUnit::DataStorageSaveType, app::MonitorUnit::DataStorageLoadType>;
+        ChartsWidget<DataStorageType>* chart =
+            new ChartsWidget<DataStorageType>{self->MonitorUnit_iter_->DataStorage()};
+        chart->setAttribute(Qt::WA_DeleteOnClose);
+        chart->show();
+    });
 
     layout()->setMenuBar(menu_bar_);
 }

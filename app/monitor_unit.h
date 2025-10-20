@@ -20,6 +20,9 @@ public:
 class MonitorUnit
 {
 public:
+    using DataStorageSaveType = QString;
+    using DataStorageLoadType = QList<QPair<QDateTime,QJsonDocument>>;
+
     MonitorUnit() = default;
     MonitorUnit(const MonitorUnitSettings& settings);
     ~MonitorUnit();
@@ -29,6 +32,8 @@ public:
 
     void SetObserver(MU_ObserverBase* observer);
     void SetName(const QString& name);
+    data_storage::DataStorageInterface
+        <DataStorageSaveType,DataStorageLoadType>* DataStorage() const;
     void StartTransmission();
     void StopTransmission();
     void InitDataSaving();
@@ -40,7 +45,8 @@ public:
 private:
     MonitorUnitSettings settings_;
     std::unique_ptr<transfer::TransferInterface> transfer_;
-    std::unique_ptr<data_storage::DataStorageInterface<QString,QList<QPair<QDateTime,QJsonDocument>>>> data_storage_;
+    std::unique_ptr<data_storage::DataStorageInterface
+                    <DataStorageSaveType,DataStorageLoadType>> data_storage_;
     MU_ObserverBase* observer_{nullptr};
     QString mu_unit_name_;
 };

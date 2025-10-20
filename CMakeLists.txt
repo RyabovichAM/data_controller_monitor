@@ -13,7 +13,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 COMPONENTS Widgets SerialPort Network REQUIRED)
+find_package(Qt6 COMPONENTS Widgets SerialPort Charts Network REQUIRED)
 
 file(GLOB_RECURSE TRANSFER_SRC transfer/*.cpp transfer/*.h)
 file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widget/*.h)
@@ -36,8 +36,8 @@ qt_add_executable(data_controller_monitor
     ${PROJECT_SOURCES}
 )
 
-target_include_directories(data_controller_monitor PRIVATE app/ data_storage/ transfer/ widgets/ widgets/view_widget)
-target_link_libraries(data_controller_monitor PRIVATE Qt6::Widgets Qt6::SerialPort Qt6::Network)
+target_include_directories(data_controller_monitor PRIVATE app/ data_storage/ transfer/ widgets/ widgets/charts widgets/view_widget)
+target_link_libraries(data_controller_monitor PRIVATE Qt6::Widgets Qt6::SerialPort Qt6::Charts Qt6::Network)
 
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(data_controller_monitor)
@@ -57,9 +57,9 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     ${TESTS_SRC}
   )
 
-  target_include_directories(data_controller_monitor_tests PRIVATE app/ widgets/ transfer/ data_storage/)
+  target_include_directories(data_controller_monitor_tests PRIVATE app/ data_storage/ transfer/ widgets/ widgets/charts widgets/view_widget)
   target_link_libraries(data_controller_monitor_tests PRIVATE
-    Qt6::Widgets Qt6::SerialPort Qt6::Network
+    Qt6::Widgets Qt6::SerialPort Qt6::Charts Qt6::Network
     GTest::GTest
     pthread)
 
