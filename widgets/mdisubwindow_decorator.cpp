@@ -19,12 +19,12 @@ MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* par
 
     QMenu *chartMenu = menu_bar_->addMenu("Chart");
     chartMenu->addAction("Chart", this, [self = this]() {
-        using DataStorageType = data_storage::DataStorageInterface
-            <app::MonitorUnit::DataStorageSaveType, app::MonitorUnit::DataStorageLoadType>;
-        ChartsWidget<DataStorageType>* chart =
-            new ChartsWidget<DataStorageType>{self->MonitorUnit_iter_->DataStorage()};
-        chart->setAttribute(Qt::WA_DeleteOnClose);
-        chart->show();
+        // using DataStorageType = data_storage::DataStorageInterface
+        //     <app::MonitorUnit::DataStorageSaveType, app::MonitorUnit::DataStorageLoadType>;
+        ChartsWidget* charts =
+            new ChartsWidget{self->MonitorUnit_iter_->DataStorage()};
+        charts->setAttribute(Qt::WA_DeleteOnClose);
+        charts->show();
     });
 
     layout()->setMenuBar(menu_bar_);
