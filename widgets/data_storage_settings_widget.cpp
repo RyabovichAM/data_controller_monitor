@@ -1,10 +1,14 @@
 #include "data_storage_settings_widget.h"
 #include "ui_data_storage_settings_widget.h"
 
+#include <QFileDialog>
+
 DataStorageSettingsWidget::DataStorageSettingsWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::DataStorageSettingsWidget) {
     ui->setupUi(this);
+    connect(ui->get_dir_btn, &QPushButton::clicked,
+            this, & DataStorageSettingsWidget::OnBrowseDirClicked);
 }
 
 DataStorageSettingsWidget::~DataStorageSettingsWidget() {
@@ -28,3 +32,16 @@ QHash<QString, QString> DataStorageSettingsWidget::GetSettings() {
     return settings;
 }
 
+void DataStorageSettingsWidget::OnBrowseDirClicked() {
+    QString dir = QFileDialog::getExistingDirectory(
+        this,
+        tr("Выбор директории"),
+        QString(),
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+        );
+
+    if (!dir.isEmpty()) {
+        ui->location->setText(dir);
+        qDebug() << "Выбрана директория:" << dir;
+    }
+}

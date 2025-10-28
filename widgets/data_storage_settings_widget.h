@@ -19,6 +19,7 @@ public:
 
 private slots:
     void on_data_storage_enable_check_stateChanged(int arg1);
+    void OnBrowseDirClicked();
 
 private:
     Ui::DataStorageSettingsWidget *ui;
