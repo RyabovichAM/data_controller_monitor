@@ -35,7 +35,7 @@ QHash<QString, QString> DataStorageSettingsWidget::GetSettings() {
 void DataStorageSettingsWidget::OnBrowseDirClicked() {
     QString dir = QFileDialog::getExistingDirectory(
         this,
-        tr("Выбор директории"),
+        tr("Select a Directory"),
         QString(),
         QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
         );

@@ -25,6 +25,7 @@ class ChartsWidget : public QWidget
 public:
     explicit ChartsWidget(data_storage::DataStorageInterface
         <QString,QList<QPair<QDateTime,QJsonDocument>>>* storage,
+                          const QString&  title = "",
                           QWidget *parent = nullptr);
 
     ~ChartsWidget();
@@ -46,6 +47,7 @@ private:
     QDateTimeEdit from_date_edit_;
     QDateTimeEdit to_date_edit_;
     QPushButton build_btn_{"Build"};
+    bool is_tools_layout_visible_{true};
 
     void DeleteSeries();
 };

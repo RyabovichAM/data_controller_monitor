@@ -33,9 +33,17 @@ void ValuesListWidget::ShowContextMenu(const QPoint &pos) {
 }
 
 ChartsWidget::ChartsWidget(data_storage::DataStorageInterface
-                                  <QString,QList<QPair<QDateTime,QJsonDocument>>>* storage, QWidget *parent)
+                <QString,QList<QPair<QDateTime,QJsonDocument>>>* storage,
+                    const QString& title, QWidget *parent)
     :   storage_{storage}
     ,   QWidget{parent} {
+    setWindowTitle(title);
+
+    QMenuBar* menuBar = new QMenuBar(this);
+    QMenu* fileMenu = menuBar->addMenu("View");
+    QAction* show_hide_params = fileMenu->addAction("Show/Hide Parameters");
+
+    //----
 
     axis_y_.setTitleText("Values");
     axis_y_.setTitleVisible(true);
@@ -52,6 +60,7 @@ ChartsWidget::ChartsWidget(data_storage::DataStorageInterface
     chart_view_.setChart(&chart_);
 
     QGridLayout* main_layout = new QGridLayout;
+    main_layout->setMenuBar(menuBar);
     QVBoxLayout* tools = new QVBoxLayout;
 
     value_name_edit_.setPlaceholderText("Value name");
@@ -74,6 +83,16 @@ ChartsWidget::ChartsWidget(data_storage::DataStorageInterface
     tools->addWidget(&to_date_edit_);
     tools->addWidget(&build_btn_);
     connect(&build_btn_, &QPushButton::clicked, this, &ChartsWidget::BuildChart);
+    connect(show_hide_params, &QAction::triggered, this, [self = this,tools]() {
+        for (int i = 0; i < tools->count(); ++i) {
+            QWidget *w = tools->itemAt(i)->widget();
+            if (w) {
+                self->is_tools_layout_visible_ ? w->hide() : w->show();
+            }
+        }
+        self->is_tools_layout_visible_ ? self->is_tools_layout_visible_ = false :
+            self->is_tools_layout_visible_ = true;
+    });
 
     main_layout->addWidget(&chart_view_,0,0);
     main_layout->setColumnStretch(0,1);
@@ -101,6 +120,7 @@ void ChartsWidget::BuildChart() {
         series[value] = new QLineSeries;
         series[value]->setPointsVisible(true);
         series[value]->pen().setWidth(2);
+        series[value]->setName(value);
     }
 
     for(auto& data_point : data) {
