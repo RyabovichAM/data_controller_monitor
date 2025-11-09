@@ -23,11 +23,12 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::ClickNewControllerViewer(bool) {
-    MdiSubWindowDecorator* subWindow = new MdiSubWindowDecorator{app_};
-
     MonitorUnitSettingsWidget musw;
-    musw.exec();
+    if (musw.exec() == QDialog::Rejected) {
+        return;
+    }
 
+    MdiSubWindowDecorator* subWindow = new MdiSubWindowDecorator{app_};
     SubWindow_MU_observer* subWindow_observer = new SubWindow_MU_observer(subWindow,subWindow);
 
     auto unit_iter = app_.CreateUnit(musw.GetSettings());
