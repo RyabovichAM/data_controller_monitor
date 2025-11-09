@@ -7,14 +7,6 @@
 
 namespace view_widget {
 
-struct Shape {
-    QColor color;
-    ComponentWidgetIndex tool_type;
-    QList<QPoint> points;
-
-    QString TypeToString() const;
-};
-
 using ValueUpdatedWidgetsByObjName = QHash<QString, QWidget*>;
 
 class Canvas : public QFrame {
@@ -28,7 +20,8 @@ public:
     QString GetLabel() const;
 
 public slots:
-    void SetCurrentComponentWidgetIndex(ComponentWidgetIndex idx);
+    void SetCurrentComponentWidgetType(ComponentWidgetType type,
+                                       const QString& curr_str_sub_type);
     void DeleteShapeByIndex(int index);
     void DeleteObjectByIndex(int index);
 
@@ -42,7 +35,8 @@ protected:
 
 private:
     ValueUpdatedWidgetsByObjName value_updated_widgets_by_obj_name_;
-    ComponentWidgetIndex current_tool_;
+    ComponentWidgetType current_com_wgt_type_;
+    QString current_component_sub_type_str_;
     QList<view_widget::Shape> shapes_;
     view_widget::Shape current_shape_;
     bool drawing_;
@@ -51,7 +45,7 @@ private:
     void DrawShape(const view_widget::Shape& shape, QPainter& painter);
 
 signals:
-    void ItemAdded(ComponentWidgetIndex idx);
+    void ItemAdded(ComponentWidgetType comp_wgt_type, const QString& comp_wgt_sub_type);
 };
 
 }   //view_widget

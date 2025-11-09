@@ -4,7 +4,7 @@
 #include <QJsonObject>
 #include <QLayout>
 
-#include "view_widget/component_widgets.h"
+#include "view_widget/component_objects_widgets.h"
 #include "charts/charts_widget.h"
 
 MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* parent)
@@ -67,6 +67,6 @@ void SubWindow_MU_observer::Update(const QJsonDocument& data) {
     for (auto param = json_obj.begin(); param != json_obj.end(); ++param) {
         auto* wgt = updateble_wgts_maps[param.key()];
         if(wgt != nullptr)
-            dynamic_cast<ComponentWidgets::Label*>(wgt)->setText(param.value().toString());
+            dynamic_cast<ComponentObjectsWidgets::Label*>(wgt)->SetText(param.value().toString());
     }
 }

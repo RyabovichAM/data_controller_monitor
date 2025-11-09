@@ -1,7 +1,7 @@
 #include "label_settings_widget.h"
 #include "ui_label_settings_widget.h"
 
-namespace ComponentWidgets {
+namespace ComponentObjectsWidgets {
 
 LabelSettingsWidget::LabelSettingsWidget(QWidget *parent, const QString& label,
                                  const QString& obj_name, QSize size)
@@ -42,4 +42,4 @@ void LabelSettingsWidget::SetUp() {
 }
 
 
-}   //namespace ComponentWidgets
+}   //namespace ComponentObjectsWidgets

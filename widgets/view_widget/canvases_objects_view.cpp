@@ -38,15 +38,19 @@ CanvasesObjectsView::CanvasesObjectsView(Canvas* canvas, QWidget* parent)
     , objects_{new CanvasesItemsList{this}} {
     QVBoxLayout* layout = new QVBoxLayout{};
 
-    connect(canvas_, &Canvas::ItemAdded, this, [self = this] (ComponentWidgetIndex idx) {
-        if(idx == ComponentWidgetIndex::None) {
+    connect(canvas_, &Canvas::ItemAdded, this, [self = this]
+            (ComponentWidgetType idx, const QString& comp_wgt_sub_type) {
+        if(idx == ComponentWidgetType::None || idx == ComponentWidgetType::Other) {
             return;
         }
-        if(idx == ComponentWidgetIndex::Label) {
-            self->objects_->addItem(ComponentWidgetIndexToString(idx));
+        if(idx == ComponentWidgetType::Oblect) {
+            self->objects_->addItem(comp_wgt_sub_type);
             return;
         }
-        self->figures_->addItem(ComponentWidgetIndexToString(idx));
+        if(idx == ComponentWidgetType::Shape) {
+            self->figures_->addItem(comp_wgt_sub_type);
+            return;
+        }
     });
     connect(figures_, &CanvasesItemsList::deleteItem,
                 canvas, &Canvas::DeleteShapeByIndex);

@@ -1,9 +1,8 @@
 #include "tool_widget.h"
 
 #include <QEvent>
+#include <QLabel>
 #include <QMouseEvent>
-
-#include "component_widgets.h"
 
 namespace view_widget {
 
@@ -55,7 +54,7 @@ ToolWidget::ToolWidget(QWidget* parent) : QWidget(parent) {
 
     QVBoxLayout* main_layout = new QVBoxLayout{this};
     main_layout->addWidget(new QLabel{"None", this});
-    main_layout->addWidget(new ComponentWidgets::Label{this});
+    main_layout->addWidget(new QLabel{"Label", this});
     main_layout->addWidget(new QLabel{"Rectangle",this});
     main_layout->addWidget(new QLabel{"Ellipse", this});
     main_layout->addWidget(new QLabel{"Line", this});
@@ -71,8 +70,37 @@ ToolWidget::ToolWidget(QWidget* parent) : QWidget(parent) {
 }
 
 void ToolWidget::OnCellSelected(int index) {
-    comp_wgt_index_ = static_cast<ComponentWidgetIndex>(index);
-    emit saveCurrentTool(comp_wgt_index_);
+    QString sub_type;
+    switch(index) {
+    case 0:
+        comp_wgt_index_ = ComponentWidgetType::None;
+        sub_type = "None";
+        break;
+    case 1:
+        comp_wgt_index_ = ComponentWidgetType::Oblect;
+        sub_type = "Label";
+        break;
+    case 2:
+        comp_wgt_index_ = ComponentWidgetType::Shape;
+        sub_type = "Rectangle";
+        break;
+    case 3:
+        comp_wgt_index_ = ComponentWidgetType::Shape;
+        sub_type = "Ellipse";
+        break;
+    case 4:
+        comp_wgt_index_ = ComponentWidgetType::Shape;
+        sub_type = "Line";
+        break;
+    case 5:
+        comp_wgt_index_ = ComponentWidgetType::Shape;
+        sub_type = "Brush";
+        break;
+    default:
+        Q_ASSERT("ToolWidget::OnCellSelected: no type selected");
+    }
+
+    emit saveCurrentTool(comp_wgt_index_,std::move(sub_type));
 }
 
 }   //view_widget

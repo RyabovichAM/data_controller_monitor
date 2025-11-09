@@ -23,9 +23,7 @@ private:
     void SetDefaultStyle();
 };
 
-
-class ToolWidget : public QWidget
-{
+class ToolWidget : public QWidget {
     Q_OBJECT
 public:
     ToolWidget(QWidget* parent = nullptr);
@@ -33,9 +31,9 @@ private slots:
     void OnCellSelected(int index);
 private:
     LayoutEventFilter* event_filter_;
-    ComponentWidgetIndex comp_wgt_index_;
+    ComponentWidgetType comp_wgt_index_;
 signals:
-    void saveCurrentTool(ComponentWidgetIndex idx);
+    void saveCurrentTool(ComponentWidgetType type, QString curr_str_type);
 };
 
 }   //view_widget

@@ -6,13 +6,9 @@
 #include <QPaintEvent>
 #include <QPen>
 
-#include "component_widgets.h"
+#include "component_objects_widgets.h"
 
 namespace view_widget {
-
-QString Shape::TypeToString() const {
-    return ComponentWidgetIndexToString(tool_type);
-}
 
 Canvas::Canvas(QWidget* parent) : QFrame(parent) {
     setAcceptDrops(true);
@@ -39,8 +35,10 @@ QString Canvas::GetLabel() const {
     return label_;
 }
 
-void Canvas::SetCurrentComponentWidgetIndex(ComponentWidgetIndex idx) {
-    current_tool_ = idx;
+void Canvas::SetCurrentComponentWidgetType(ComponentWidgetType type,
+                                   const QString& curr_str_sub_type) {
+    current_com_wgt_type_ = type;
+    current_component_sub_type_str_ = curr_str_sub_type;
 }
 
 void Canvas::DeleteShapeByIndex(int index) {
@@ -55,8 +53,8 @@ void Canvas::DeleteObjectByIndex(int index) {
     }
 
     QObject* child = children.at(index);
-    if (ComponentWidgets::Label* label = dynamic_cast<ComponentWidgets::Label*>(child)) {
-        label->close();
+    if(auto wgt = static_cast<QWidget*>(child)) {
+        wgt->close();
     }
 }
 
@@ -79,35 +77,38 @@ void Canvas::dropEvent(QDropEvent* event)  {
 
 void Canvas::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
-        if(current_tool_ == ComponentWidgetIndex::Label) {
-            ComponentWidgets::Label* label =  new ComponentWidgets::Label{this};
+        if(current_com_wgt_type_ == ComponentWidgetType::Oblect) {
+            ComponentObjectsWidgets::ComponentObjectWgtInterface* obj_wgt =
+                ComponentObjectsWidgets::MakeComponentObjectsWgt(ComponentObjectsWidgets::ComponentObjectsStringToType(current_component_sub_type_str_),this);
 
-            ComponentWidgets::CW_ObserverBase* observer = new ComponentWidgets::CW_ObserverBase{label};
-            observer->SetOnObjectNameChanged([self = this, label](const QString& prev_obj_name, const QString& obj_name){
+            ComponentObjectsWidgets::COW_ObserverBase* observer = new ComponentObjectsWidgets::COW_ObserverBase{obj_wgt};
+            observer->SetOnObjectNameChanged([self = this, obj_wgt](const QString& prev_obj_name, const QString& obj_name){
                 self->value_updated_widgets_by_obj_name_.remove(prev_obj_name);
-                self->value_updated_widgets_by_obj_name_.insert(obj_name,label);
+                self->value_updated_widgets_by_obj_name_.insert(obj_name,obj_wgt);
             });
-            label->SetObserver(observer);
+            obj_wgt->SetObserver(observer);
 
-            label->move(event->position().toPoint());
-            label->show();
+            obj_wgt->move(event->position().toPoint());
+            obj_wgt->show();
             event->accept();
-            emit ItemAdded(current_tool_);
+            emit ItemAdded(current_com_wgt_type_,current_component_sub_type_str_);
             return;
         }
 
-        drawing_ = true;
-        current_shape_.tool_type = current_tool_;
-        current_shape_.color = QColor{};
-        current_shape_.points.clear();
-        current_shape_.points.append(event->pos());
-        current_shape_.points.append(event->pos());
+        if(current_com_wgt_type_ == ComponentWidgetType::Shape) {
+            drawing_ = true;
+            current_shape_.tool_type = view_widget::Shape::StringToType(current_component_sub_type_str_);
+            current_shape_.color = QColor{};
+            current_shape_.points.clear();
+            current_shape_.points.append(event->pos());
+            current_shape_.points.append(event->pos());
+        }
     }
 }
 
 void Canvas::mouseMoveEvent(QMouseEvent *event) {
     if (drawing_ && (event->buttons() & Qt::LeftButton)) {
-        if(current_shape_.tool_type == ComponentWidgetIndex::Brush) {
+        if(current_shape_.tool_type == view_widget::Shape::Type::Brush) {
             current_shape_.points.append(event->pos());
         } else {
             current_shape_.points.last() = event->pos();
@@ -120,7 +121,7 @@ void Canvas::mouseReleaseEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton && drawing_) {
         drawing_ = false;
         shapes_.append(current_shape_);
-        emit ItemAdded(current_tool_);
+        emit ItemAdded(current_com_wgt_type_,current_component_sub_type_str_);
         update();
     }
 }
@@ -146,25 +147,25 @@ void Canvas::paintEvent(QPaintEvent *event) {
 
 void Canvas::DrawShape(const view_widget::Shape& shape, QPainter& painter) {
     switch (shape.tool_type) {
-    case ComponentWidgetIndex::Rectangle:
+    case view_widget::Shape::Type::Rectangle:
         painter.drawRect(QRect(shape.points.first(),
                                shape.points.last()).normalized());
         break;
-    case ComponentWidgetIndex::Ellipse:
+    case view_widget::Shape::Type::Ellipse:
         painter.drawEllipse(QRect(shape.points.first(),
                                   shape.points.last()).normalized());
         break;
-    case ComponentWidgetIndex::Line:
+    case view_widget::Shape::Type::Line:
         painter.drawLine(shape.points.first(),
                          shape.points.last());
         break;
-    case ComponentWidgetIndex::Brush:
+    case view_widget::Shape::Type::Brush:
         for (int i = 1; i < shape.points.size(); ++i) {
             painter.drawLine(shape.points[i-1], shape.points[i]);
         }
         break;
-    case ComponentWidgetIndex::Label:
-        Q_ASSERT("Label no drawable");
+    default:
+        Q_ASSERT("Canvas::DrawShape: no drawable item");
     }
 }
 

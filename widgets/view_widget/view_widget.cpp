@@ -19,7 +19,7 @@ ViewWidget::ViewWidget(QWidget *parent)
     layout->addWidget(tool_wgt_,1);
 
     connect(tool_wgt_, &ToolWidget::saveCurrentTool,
-            canvas_, &Canvas::SetCurrentComponentWidgetIndex);
+            canvas_, &Canvas::SetCurrentComponentWidgetType);
 
     QVBoxLayout* canvases_layout = new QVBoxLayout{};
     canvases_label_->setPlaceholderText("Canvases label");

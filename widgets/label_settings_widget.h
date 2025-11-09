@@ -7,7 +7,7 @@ namespace Ui {
 class LabelSettingsWidget;
 }
 
-namespace ComponentWidgets {
+namespace ComponentObjectsWidgets {
 
 struct LabelSettings {
     QString label;
@@ -39,6 +39,6 @@ private:
     void SetUp();
 };
 
-}   //namespace ComponentWidgets
+}   //namespace ComponentObjectsWidgets
 
 #endif // LABEL_SETTINGS_WIDGET_H
