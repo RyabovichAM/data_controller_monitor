@@ -1,6 +1,5 @@
 #include "view_widget.h"
 
-#include <QMimeData>
 
 namespace view_widget {
 
@@ -11,7 +10,6 @@ ViewWidget::ViewWidget(QWidget *parent)
     , objects_viewer_{new CanvasesObjectsView(canvas_,this)}
     , canvases_label_{new QLineEdit{this}} {
     setWindowTitle("View Widget");
-    setGeometry(100, 100, 800, 600);
 
     QHBoxLayout* layout = new QHBoxLayout{};
     setLayout(layout);

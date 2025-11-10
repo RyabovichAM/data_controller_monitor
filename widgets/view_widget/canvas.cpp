@@ -1,7 +1,5 @@
 #include "canvas.h"
 
-#include <QApplication>
-
 #include <QPainter>
 #include <QPaintEvent>
 #include <QPen>
@@ -12,11 +10,7 @@ namespace view_widget {
 
 Canvas::Canvas(QWidget* parent) : QFrame(parent) {
     setAcceptDrops(true);
-    setStyleSheet("background-color: white; border: 2px dashed #aaa;");
-
-    QScreen *screen = QApplication::primaryScreen();
-    QRect screenGeometry = screen->geometry();
-    setMinimumSize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.4);
+    setStyleSheet("background-color: white; border: 2px solid grey;");
 }
 
 ValueUpdatedWidgetsByObjName& Canvas::GetUpdatebleWidgets() {

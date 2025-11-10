@@ -1,11 +1,14 @@
 #include "monitor_unit_settings_widget.h"
 #include "ui_monitor_unit_settings_widget.h"
 
+#include <QApplication>
+
 MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(view_widget::Canvas* parent)
     : QDialog(parent)
     , ui(new Ui::MonitorUnitSettingsWidget)
 {
     ui->setupUi(this);
+    setWindowTitle("Monitor Unit Settings");
     setModal(true);
 
     //view widget
@@ -27,6 +30,9 @@ MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(view_widget::Canvas* parent
     storage_layout->addWidget(storage_stg_wgt);
     ui->storage_tab->setLayout(storage_layout);
 
+    QScreen *screen = QApplication::primaryScreen();
+    QRect screenGeometry = screen->geometry();
+    resize(screenGeometry.width() * 0.3, screenGeometry.height() * 0.4);
 }
 
 MonitorUnitSettingsWidget::~MonitorUnitSettingsWidget() {

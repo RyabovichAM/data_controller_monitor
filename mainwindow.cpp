@@ -12,6 +12,7 @@ MainWindow::MainWindow(app::Application& app, QWidget *parent)
     , mdi_area_{} {
     ui->setupUi(this);
     setCentralWidget(&mdi_area_);
+    setWindowTitle("Data Controller");
 
     connect(ui->actionNew_ControllerViewer, &QAction::triggered, this, &MainWindow::ClickNewControllerViewer);
     connect(ui->actionEdit, &QAction::triggered, this, &MainWindow::ClickEditMode);
