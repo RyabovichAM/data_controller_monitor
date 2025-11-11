@@ -47,7 +47,8 @@ void Canvas::DeleteObjectByIndex(int index) {
     }
 
     QObject* child = children.at(index);
-    if(auto wgt = static_cast<QWidget*>(child)) {
+    if(auto wgt = static_cast<ComponentObjectsWidgets::ComponentObjectWgtInterface*>(child)) {
+        value_updated_widgets_by_obj_name_.remove(wgt->objectName());
         wgt->close();
     }
 }

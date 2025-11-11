@@ -128,8 +128,8 @@ void Label::mouseDoubleClickEvent(QMouseEvent *event) {
         main_lbl_->setText(label_stg.label);
         if(observer_)
             observer_->CallOnObjectNameChanged(this->objectName(), label_stg.object_name);
-        this->setObjectName(label_stg.object_name);
-        this->setFixedSize(label_stg.width,label_stg.height);
+        setObjectName(label_stg.object_name);
+        resize(label_stg.width,label_stg.height);
     }
 }
 
