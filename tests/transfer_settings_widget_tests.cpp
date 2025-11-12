@@ -5,7 +5,8 @@
 
 TEST(TransferSettingsWidget, GetSetting) {
     TransferSettingsWidget wgt;
-    auto settings = wgt.GetSettings();
+    auto opt_settigs = wgt.GetSettings();
+    auto settings = *opt_settigs;
 
     ASSERT_TRUE(settings.contains("port_name"));
 

@@ -31,14 +31,12 @@ void MainWindow::ClickNewControllerViewer(bool) {
 
     MdiSubWindowDecorator* subWindow = new MdiSubWindowDecorator{app_};
     SubWindow_MU_observer* subWindow_observer = new SubWindow_MU_observer(subWindow,subWindow);
-
     auto unit_iter = app_.CreateUnit(musw.GetSettings());
     unit_iter->SetObserver(subWindow_observer);
     unit_iter->SetName(musw.GetWidget()->GetLabel());
     subWindow->AddMonitorUnit(unit_iter);
     subWindow->setWindowTitle(musw.GetWidget()->GetLabel());
     subWindow->SetWidget(musw.GetWidget());
-
     mdi_area_.addSubWindow(subWindow);
     subWindow->show();
 }

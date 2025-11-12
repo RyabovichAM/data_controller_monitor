@@ -2,6 +2,7 @@
 #include "ui_transfer_settings_widget.h"
 
 #include <QSerialPortInfo>
+#include <QMessageBox>
 
 TransferSettingsWidget::TransferSettingsWidget(QWidget *parent)
     : QTabWidget(parent)
@@ -14,13 +15,12 @@ TransferSettingsWidget::TransferSettingsWidget(QWidget *parent)
     }
 }
 
-TransferSettingsWidget::~TransferSettingsWidget()
-{
+TransferSettingsWidget::~TransferSettingsWidget() {
     delete ui;
 }
 
 
-QHash<QString, QString> TransferSettingsWidget::GetSettings()
+std::optional<QHash<QString, QString>> TransferSettingsWidget::GetSettings()
 {
     QHash<QString, QString> settings;
     auto widget = currentWidget();
@@ -36,6 +36,11 @@ QHash<QString, QString> TransferSettingsWidget::GetSettings()
     QList<QLineEdit*> lineedits = widget->findChildren<QLineEdit*>();
 
     for (QLineEdit* lineedit : lineedits) {
+        if (lineedit->text().trimmed().isEmpty()) {
+            QMessageBox::warning(this, "Error", "Field cannot be empty");
+            lineedit->setFocus();
+            return std::nullopt;
+        }
         settings[lineedit->objectName()] = lineedit->text();
     }
 

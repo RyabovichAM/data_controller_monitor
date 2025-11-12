@@ -22,8 +22,12 @@ public:
     const app::MonitorUnitSettings GetSettings() const;
     view_widget::Canvas* GetWidget() const;
 
+public slots:
+    void ValidateAndAccept();
+
 private:
     Ui::MonitorUnitSettingsWidget *ui;
+    app::MonitorUnitSettings mu_settings_;
 
     view_widget::ViewWidget* view_widget_{nullptr};
     TransferSettingsWidget* transfer_stg_wgt_{nullptr};

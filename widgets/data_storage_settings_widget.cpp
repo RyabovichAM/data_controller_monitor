@@ -2,6 +2,7 @@
 #include "ui_data_storage_settings_widget.h"
 
 #include <QFileDialog>
+#include <QMessageBox>
 
 DataStorageSettingsWidget::DataStorageSettingsWidget(QWidget *parent)
     : QWidget(parent)
@@ -19,10 +20,20 @@ void DataStorageSettingsWidget::on_data_storage_enable_check_stateChanged(int ar
     ui->groupBox->setEnabled(arg1 == Qt::Checked);
 }
 
-QHash<QString, QString> DataStorageSettingsWidget::GetSettings() {
+std::optional<QHash<QString, QString>> DataStorageSettingsWidget::GetSettings() {
     if(ui->data_storage_enable_check->checkState() == Qt::Unchecked)
-        return {{"is_enable","not_enable"}};
+        return QHash<QString, QString>{{"is_enable", "not_enable"}};
 
+    if (ui->location->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Error", "Field cannot be empty");
+        ui->location->setFocus();
+        return std::nullopt;
+    }
+    if (ui->period->text().trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Error", "Field cannot be empty");
+        ui->period->setFocus();
+        return std::nullopt;
+    }
     QHash<QString, QString> settings;
     settings["is_enable"] = "enable";
     settings["type"] = "csv";

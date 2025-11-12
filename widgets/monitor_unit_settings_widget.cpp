@@ -2,6 +2,7 @@
 #include "ui_monitor_unit_settings_widget.h"
 
 #include <QApplication>
+#include <QPushButton>
 
 MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(view_widget::Canvas* parent)
     : QDialog(parent)
@@ -10,6 +11,10 @@ MonitorUnitSettingsWidget::MonitorUnitSettingsWidget(view_widget::Canvas* parent
     ui->setupUi(this);
     setWindowTitle("Monitor Unit Settings");
     setModal(true);
+    disconnect(ui->buttonBox, &QDialogButtonBox::accepted, 0, 0);
+    disconnect(ui->buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked, 0, 0);
+    connect(ui->buttonBox->button(QDialogButtonBox::Ok), &QPushButton::clicked,
+            this, &MonitorUnitSettingsWidget::ValidateAndAccept);
 
     //view widget
     view_widget_ = new view_widget::ViewWidget(ui->view_tab);
@@ -43,9 +48,22 @@ view_widget::Canvas* MonitorUnitSettingsWidget::GetWidget() const {
     return view_widget_->GetCanvas();
 }
 
+void MonitorUnitSettingsWidget::ValidateAndAccept() {
+    if(transfer_stg_wgt_->GetSettings()) {
+        mu_settings_.transfer = *(transfer_stg_wgt_->GetSettings());
+    } else {
+        ui->tabWidget->setCurrentWidget(ui->transfer_tab);
+        return;
+    }
+    if(storage_stg_wgt->GetSettings()) {
+        mu_settings_.data_storage = *(storage_stg_wgt->GetSettings());
+    } else {
+        ui->tabWidget->setCurrentWidget(ui->storage_tab);
+        return;
+    }
+    accept();
+}
+
 const app::MonitorUnitSettings MonitorUnitSettingsWidget::GetSettings() const {
-    app::MonitorUnitSettings result;
-    result.transfer = transfer_stg_wgt_->GetSettings();
-    result.data_storage = storage_stg_wgt->GetSettings();
-    return result;
+    return mu_settings_;
 }
