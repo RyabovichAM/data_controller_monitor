@@ -36,9 +36,10 @@ std::optional<QHash<QString, QString>> DataStorageSettingsWidget::GetSettings() 
     }
     QHash<QString, QString> settings;
     settings["is_enable"] = "enable";
-    settings["type"] = "csv";
+    settings["type"] = "file";
     settings["location"] = ui->location->text();
     settings["period"] = ui->period->text();
+    settings["data_format"] = ui->is_binary-> isChecked() ? "binary" : "text";
 
     return settings;
 }
@@ -53,6 +54,5 @@ void DataStorageSettingsWidget::OnBrowseDirClicked() {
 
     if (!dir.isEmpty()) {
         ui->location->setText(dir);
-        qDebug() << "Выбрана директория:" << dir;
     }
 }

@@ -36,6 +36,12 @@
       <string>Data Storage</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
+      <item row="1" column="1" colspan="2">
+       <widget class="QLineEdit" name="period"/>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="location"/>
+      </item>
       <item row="0" column="2">
        <widget class="QPushButton" name="get_dir_btn">
         <property name="maximumSize">
@@ -48,9 +54,6 @@
          <string>...</string>
         </property>
        </widget>
-      </item>
-      <item row="1" column="1" colspan="2">
-       <widget class="QLineEdit" name="period"/>
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="save_period_lbl">
@@ -66,8 +69,12 @@
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="location"/>
+      <item row="2" column="1">
+       <widget class="QCheckBox" name="is_binary">
+        <property name="text">
+         <string>Is binary</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>

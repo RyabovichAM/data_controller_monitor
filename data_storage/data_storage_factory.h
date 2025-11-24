@@ -2,7 +2,7 @@
 #define DATA_STORAGE_FACTORY_H
 
 #include "data_storage_interface.h"
-#include "csv_data_storage.h"
+#include "file_data_storage.h"
 
 namespace data_storage {
 
@@ -12,8 +12,8 @@ public:
     template<typename SaveType, typename LoadType = SaveType>
     static std::unique_ptr<DataStorageInterface<SaveType,LoadType>>
                 CreateDataStorage(const QHash<QString,QString>& settings) {
-        if(settings["type"] == "csv") {
-            return std::make_unique<CsvDataStorage<SaveType,LoadType>>(settings);
+        if(settings["type"] == "file") {
+            return std::make_unique<FileDataStorage<SaveType,LoadType>>(settings);
         }
         Q_ASSERT("DataStorageFactory: Unknown storage to create");
         return nullptr;
