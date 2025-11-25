@@ -45,6 +45,8 @@ void MdiSubWindowDecorator::SetWidget(view_widget::Canvas* wgt) {
         component_wgt->setAttribute(Qt::WA_TransparentForMouseEvents);
     }
     resize(wgt->size());
+    view_->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+    view_->setFocusPolicy(Qt::NoFocus);
 }
 
 view_widget::Canvas* MdiSubWindowDecorator::View() const {
