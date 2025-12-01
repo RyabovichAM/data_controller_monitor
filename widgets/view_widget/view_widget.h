@@ -13,15 +13,18 @@ namespace view_widget {
 class ViewWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit ViewWidget(QWidget *parent = nullptr);
+    explicit ViewWidget(QWidget *parent = nullptr, bool new_view_widget = true);
 
     Canvas* GetCanvas();
+    void SetUp(Canvas* canvas);
 
 private:
-    ToolWidget* tool_wgt_;
-    Canvas* canvas_;
-    CanvasesObjectsView* objects_viewer_;
+    ToolWidget* tool_wgt_{nullptr};
+    Canvas* canvas_{nullptr};
+    CanvasesObjectsView* objects_viewer_{nullptr};
     QLineEdit* canvases_label_{nullptr};
+    QHBoxLayout* main_layout_;
+    QVBoxLayout* canvases_layout_;
 };
 
 }   //view_widget

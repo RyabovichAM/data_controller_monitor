@@ -70,6 +70,10 @@ void Label::SetObserver(COW_ObserverBase* observer) {
     observer_ = observer;
 }
 
+const QString Label::GetStringType() const {
+    return "Label";
+}
+
 void Label::SetText(const QString& text) {
     main_lbl_->setText(text);
 }

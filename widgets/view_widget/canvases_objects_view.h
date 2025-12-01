@@ -26,9 +26,13 @@ class CanvasesObjectsView : public QWidget {
 public:
     CanvasesObjectsView(Canvas* canvas, QWidget* parent = nullptr);
 
+    void AddShape(const Shape& shape);
+    void AddObject(const QString& object_name);
+    void SetCanvas(Canvas* canvas);
+
 private:
     Canvas* canvas_;
-    CanvasesItemsList* figures_;
+    CanvasesItemsList* shapes_;
     CanvasesItemsList* objects_;
 };
 

@@ -16,6 +16,7 @@ public:
     ~TransferSettingsWidget();
 
     std::optional<QHash<QString, QString>> GetSettings();
+    void SetUp(const QHash<QString, QString>& settings);
 
 private:
     Ui::TransferSettingsWidget *ui;

@@ -4,8 +4,9 @@
 #include <QJsonObject>
 #include <QLayout>
 
-#include "view_widget/component_objects_widgets.h"
 #include "charts/charts_widget.h"
+#include "monitor_unit_settings_widget.h"
+#include "view_widget/component_objects_widgets.h"
 
 MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* parent)
     :   app_{app}
@@ -13,9 +14,19 @@ MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* par
     , menu_bar_{new QMenuBar(this)} {
     setAttribute(Qt::WA_DeleteOnClose);
 
-
     QMenu *fileMenu = menu_bar_->addMenu("File");
     fileMenu->addAction("Close", this, &QMdiSubWindow::close);
+    fileMenu->addAction("Settings", this, [self = this]() {
+        MonitorUnitSettingsWidget musw(self->MonitorUnit_iter_->Settings(),
+                                       self->view_);
+        if (musw.exec() == QDialog::Rejected) {
+            return;
+        }
+        self->MonitorUnit_iter_->SetSettings(musw.GetSettings());
+        self->MonitorUnit_iter_->SetName(musw.GetWidget()->GetLabel());
+        self->setWindowTitle(musw.GetWidget()->GetLabel());
+        self->SetWidget(musw.GetWidget());
+    });
 
     QMenu *chartMenu = menu_bar_->addMenu("Chart");
     chartMenu->addAction("Chart", this, [self = this]() {
@@ -39,8 +50,16 @@ void MdiSubWindowDecorator::AddMonitorUnit(const app::MonitorUnit_Iter& iter) {
 }
 
 void MdiSubWindowDecorator::SetWidget(view_widget::Canvas* wgt) {
+    if (widget()) {
+        QWidget* oldWidget = widget();
+        oldWidget->setParent(nullptr);
+    }
+    wgt->setParent(nullptr);
     view_ = wgt;
-    setWidget(wgt);
+    if(!widget()) {
+        setWidget(view_);
+    }
+    layout()->addWidget(view_);
     for(auto component_wgt : wgt->findChildren<QWidget*>()) {
         component_wgt->setAttribute(Qt::WA_TransparentForMouseEvents);
     }

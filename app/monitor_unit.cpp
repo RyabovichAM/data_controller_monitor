@@ -35,6 +35,13 @@ data_storage::DataStorageInterface<MonitorUnit::DataStorageSaveType, MonitorUnit
     return data_storage_.get();
 }
 
+void MonitorUnit::SetSettings(const MonitorUnitSettings& settings) {
+    settings_ = settings;
+}
+const MonitorUnitSettings& MonitorUnit::Settings() const {
+    return settings_;
+}
+
 void MonitorUnit::StartTransmission() {
     transfer_ = transfer::TransferFactory::CreateTransfer(settings_.transfer);
 

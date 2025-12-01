@@ -16,6 +16,7 @@ public:
     ~DataStorageSettingsWidget();
 
     std::optional<QHash<QString, QString>> GetSettings();
+    void SetUp(const QHash<QString, QString>& settings);
 
 private slots:
     void on_data_storage_enable_check_stateChanged(int arg1);

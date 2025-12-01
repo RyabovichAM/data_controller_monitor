@@ -17,8 +17,7 @@ public:
     virtual ~MU_ObserverBase() = default;
 };
 
-class MonitorUnit
-{
+class MonitorUnit {
 public:
     using DataStorageSaveType = QString;
     using DataStorageLoadType = QList<QPair<QDateTime,QJsonDocument>>;
@@ -34,6 +33,8 @@ public:
     void SetName(const QString& name);
     data_storage::DataStorageInterface
         <DataStorageSaveType,DataStorageLoadType>* DataStorage() const;
+    void SetSettings(const MonitorUnitSettings& settings);
+    const MonitorUnitSettings& Settings() const;
     void StartTransmission();
     void StopTransmission();
     void InitDataSaving();

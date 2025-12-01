@@ -3,6 +3,7 @@
 
 #include <QFrame>
 
+#include "component_objects_widgets.h"
 #include "domain.h"
 
 namespace view_widget {
@@ -16,8 +17,10 @@ public:
     Canvas(QWidget* parent = nullptr);
     ValueUpdatedWidgetsByObjName& GetUpdatebleWidgets();
     QList<view_widget::Shape>& GetShapes();
+    QList<ComponentObjectsWidgets::ComponentObjectWgtInterface*>
+                        GetObjects();
     void SetLabel(const QString& label);
-    QString GetLabel() const;
+    const QString GetLabel() const;
 
 public slots:
     void SetCurrentComponentWidgetType(ComponentWidgetType type,

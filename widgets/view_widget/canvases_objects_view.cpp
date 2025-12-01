@@ -34,7 +34,7 @@ void CanvasesItemsList::keyPressEvent(QKeyEvent *event) {
 CanvasesObjectsView::CanvasesObjectsView(Canvas* canvas, QWidget* parent)
     : canvas_{canvas}
     , QWidget{parent}
-    , figures_{new CanvasesItemsList{this}}
+    , shapes_{new CanvasesItemsList{this}}
     , objects_{new CanvasesItemsList{this}} {
     QVBoxLayout* layout = new QVBoxLayout{};
 
@@ -48,19 +48,31 @@ CanvasesObjectsView::CanvasesObjectsView(Canvas* canvas, QWidget* parent)
             return;
         }
         if(idx == ComponentWidgetType::Shape) {
-            self->figures_->addItem(comp_wgt_sub_type);
+            self->shapes_->addItem(comp_wgt_sub_type);
             return;
         }
     });
-    connect(figures_, &CanvasesItemsList::deleteItem,
+    connect(shapes_, &CanvasesItemsList::deleteItem,
                 canvas, &Canvas::DeleteShapeByIndex);
 
     connect(objects_, &CanvasesItemsList::deleteItem,
             canvas, &Canvas::DeleteObjectByIndex);
 
-    layout->addWidget(figures_);
+    layout->addWidget(shapes_);
     layout->addWidget(objects_);
     setLayout(layout);
+}
+
+void CanvasesObjectsView::AddShape(const Shape& shape) {
+    shapes_->addItem(Shape::TypeToString(shape.tool_type));
+}
+
+void CanvasesObjectsView::AddObject(const QString& object_name) {
+    objects_->addItem(object_name);
+}
+
+void CanvasesObjectsView::SetCanvas(Canvas* canvas) {
+    canvas_ = canvas;
 }
 
 }   //view_widget

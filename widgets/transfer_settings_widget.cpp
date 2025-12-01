@@ -19,6 +19,27 @@ TransferSettingsWidget::~TransferSettingsWidget() {
     delete ui;
 }
 
+void TransferSettingsWidget::SetUp(const QHash<QString, QString>& settings) {
+    for (int i = 0; i < count(); ++i) {
+        if (tabText(i) == settings["type"]) {
+            setCurrentIndex(i);
+        }
+    }
+    auto widget = currentWidget();
+
+    QList<QComboBox*> comboboxes = widget->findChildren<QComboBox*>();
+
+    for(auto& combobox : comboboxes) {
+        combobox->setCurrentText(settings[combobox->objectName()]);
+    }
+
+    QList<QLineEdit*> lineedits = widget->findChildren<QLineEdit*>();
+
+    for(auto& lineedit : lineedits) {
+        lineedit->setText(settings[lineedit->objectName()]);
+    }
+}
+
 
 std::optional<QHash<QString, QString>> TransferSettingsWidget::GetSettings()
 {

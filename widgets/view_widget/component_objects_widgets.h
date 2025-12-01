@@ -33,6 +33,7 @@ public:
     virtual ~ComponentObjectWgtInterface() = default;
 
     virtual void SetObserver(COW_ObserverBase* observer) = 0;
+    virtual const QString GetStringType() const = 0;
 };
 
 class Label : public ComponentObjectWgtInterface {
@@ -40,6 +41,7 @@ class Label : public ComponentObjectWgtInterface {
 public:
     Label(QWidget* parent = nullptr);
     void SetObserver(COW_ObserverBase* observer) override;
+    const QString GetStringType() const override;
     void SetText(const QString& text);
 
 protected:

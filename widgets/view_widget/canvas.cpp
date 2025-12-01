@@ -4,8 +4,6 @@
 #include <QPaintEvent>
 #include <QPen>
 
-#include "component_objects_widgets.h"
-
 namespace view_widget {
 
 Canvas::Canvas(QWidget* parent) : QFrame(parent) {
@@ -21,11 +19,26 @@ QList<view_widget::Shape>& Canvas::GetShapes() {
     return shapes_;
 }
 
+QList<ComponentObjectsWidgets::ComponentObjectWgtInterface*> Canvas::GetObjects() {
+    QList<ComponentObjectsWidgets::ComponentObjectWgtInterface*> children_wgts;
+
+    const QObjectList& children = this->children();
+
+    for (QObject* obj : children) {
+        if (ComponentObjectsWidgets::ComponentObjectWgtInterface* widget =
+            dynamic_cast<ComponentObjectsWidgets::ComponentObjectWgtInterface*>(obj)) {
+            children_wgts.append(widget);
+        }
+    }
+
+    return children_wgts;
+}
+
 void Canvas::SetLabel(const QString& label) {
     label_ = label;
 }
 
-QString Canvas::GetLabel() const {
+const QString Canvas::GetLabel() const {
     return label_;
 }
 
@@ -65,7 +78,8 @@ void Canvas::dropEvent(QDropEvent* event)  {
     if(component_widget == nullptr)
         return;
 
-    component_widget->move(event->position().toPoint() - QPoint(component_widget->width()/2, component_widget->height()/2));
+    component_widget->move(event->position().toPoint() -
+                           QPoint(component_widget->width()/2, component_widget->height()/2));
     component_widget->show();
     event->accept();
 }
@@ -74,10 +88,14 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
     if (event->button() == Qt::LeftButton) {
         if(current_com_wgt_type_ == ComponentWidgetType::Oblect) {
             ComponentObjectsWidgets::ComponentObjectWgtInterface* obj_wgt =
-                ComponentObjectsWidgets::MakeComponentObjectsWgt(ComponentObjectsWidgets::ComponentObjectsStringToType(current_component_sub_type_str_),this);
+                ComponentObjectsWidgets::MakeComponentObjectsWgt(
+                ComponentObjectsWidgets::ComponentObjectsStringToType(
+                                    current_component_sub_type_str_),this);
 
-            ComponentObjectsWidgets::COW_ObserverBase* observer = new ComponentObjectsWidgets::COW_ObserverBase{obj_wgt};
-            observer->SetOnObjectNameChanged([self = this, obj_wgt](const QString& prev_obj_name, const QString& obj_name){
+            ComponentObjectsWidgets::COW_ObserverBase* observer =
+                        new ComponentObjectsWidgets::COW_ObserverBase{obj_wgt};
+            observer->SetOnObjectNameChanged([self = this, obj_wgt](
+                                        const QString& prev_obj_name, const QString& obj_name){
                 self->value_updated_widgets_by_obj_name_.remove(prev_obj_name);
                 self->value_updated_widgets_by_obj_name_.insert(obj_name,obj_wgt);
             });
@@ -92,7 +110,8 @@ void Canvas::mousePressEvent(QMouseEvent *event) {
 
         if(current_com_wgt_type_ == ComponentWidgetType::Shape) {
             drawing_ = true;
-            current_shape_.tool_type = view_widget::Shape::StringToType(current_component_sub_type_str_);
+            current_shape_.tool_type = view_widget::Shape::StringToType(
+                                                    current_component_sub_type_str_);
             current_shape_.color = QColor{};
             current_shape_.points.clear();
             current_shape_.points.append(event->pos());

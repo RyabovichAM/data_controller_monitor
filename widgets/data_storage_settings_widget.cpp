@@ -20,6 +20,25 @@ void DataStorageSettingsWidget::on_data_storage_enable_check_stateChanged(int ar
     ui->groupBox->setEnabled(arg1 == Qt::Checked);
 }
 
+void DataStorageSettingsWidget::SetUp(const QHash<QString, QString>& settings) {
+    if(settings["is_enable"] == "not_enable") {
+        ui->data_storage_enable_check->setChecked(false);
+        return;
+    }
+
+    ui->data_storage_enable_check->setChecked(true);
+    ui->location->setText(settings["location"]);
+    ui->period->setText(settings["period"]);
+
+    if(settings["data_format"] == "binary") {
+        ui->is_binary->setChecked(true);
+    } else if(settings["data_format"] == "text") {
+        ui->is_binary->setChecked(false);
+    } else {
+        Q_ASSERT("DataStorageSettingsWidget::SetUp: wrong file parameter");
+    }
+}
+
 std::optional<QHash<QString, QString>> DataStorageSettingsWidget::GetSettings() {
     if(ui->data_storage_enable_check->checkState() == Qt::Unchecked)
         return QHash<QString, QString>{{"is_enable", "not_enable"}};
@@ -39,7 +58,7 @@ std::optional<QHash<QString, QString>> DataStorageSettingsWidget::GetSettings() 
     settings["type"] = "file";
     settings["location"] = ui->location->text();
     settings["period"] = ui->period->text();
-    settings["data_format"] = ui->is_binary-> isChecked() ? "binary" : "text";
+    settings["data_format"] = ui->is_binary->isChecked() ? "binary" : "text";
 
     return settings;
 }
