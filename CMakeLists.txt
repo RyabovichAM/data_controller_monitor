@@ -15,10 +15,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 COMPONENTS Widgets SerialPort Charts Network REQUIRED)
 
-file(GLOB_RECURSE TRANSFER_SRC transfer/*.cpp transfer/*.h)
-file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widget/*.h)
-file(GLOB_RECURSE APP_SRC app/*.cpp app/*.h)
-file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h)
+file(GLOB_RECURSE TRANSFER_SRC services/collector/transfer/*.cpp services/collector/transfer/*.h)
+file(GLOB_RECURSE APP_SRC     services/collector/app/*.cpp     services/collector/app/*.h)
+file(GLOB_RECURSE STORAGE_SRC services/storage-service/data_storage/*.cpp services/storage-service/data_storage/*.h)
+file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widgets/*.h)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -36,7 +36,14 @@ qt_add_executable(data_controller_monitor
     ${PROJECT_SOURCES}
 )
 
-target_include_directories(data_controller_monitor PRIVATE app/ data_storage/ transfer/ widgets/ widgets/charts widgets/view_widget)
+target_include_directories(data_controller_monitor PRIVATE
+    services/collector/app/
+    services/collector/transfer/
+    services/storage-service/data_storage/
+    widgets/
+    widgets/charts
+    widgets/view_widget
+    widgets/view_widget/component_object_widgets)
 target_link_libraries(data_controller_monitor PRIVATE Qt6::Widgets Qt6::SerialPort Qt6::Charts Qt6::Network)
 
 if(QT_VERSION_MAJOR EQUAL 6)
@@ -57,7 +64,14 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     ${TESTS_SRC}
   )
 
-  target_include_directories(data_controller_monitor_tests PRIVATE app/ data_storage/ transfer/ widgets/ widgets/charts widgets/view_widget)
+  target_include_directories(data_controller_monitor_tests PRIVATE
+      services/collector/app/
+      services/collector/transfer/
+      services/storage-service/data_storage/
+      widgets/
+      widgets/charts
+      widgets/view_widget
+      widgets/view_widget/component_object_widgets)
   target_link_libraries(data_controller_monitor_tests PRIVATE
     Qt6::Widgets Qt6::SerialPort Qt6::Charts Qt6::Network
     GTest::GTest
