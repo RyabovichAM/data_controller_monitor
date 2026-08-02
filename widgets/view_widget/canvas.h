@@ -3,7 +3,7 @@
 
 #include <QFrame>
 
-#include "component_objects_widgets.h"
+#include "component_object_widgets/component_objects_widgets.h"
 #include "domain.h"
 
 namespace view_widget {

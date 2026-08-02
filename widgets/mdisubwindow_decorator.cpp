@@ -6,7 +6,7 @@
 
 #include "charts/charts_widget.h"
 #include "monitor_unit_settings_widget.h"
-#include "view_widget/component_objects_widgets.h"
+#include "view_widget/component_object_widgets/component_objects_widgets.h"
 
 MdiSubWindowDecorator::MdiSubWindowDecorator(app::Application& app, QWidget* parent)
     :   app_{app}

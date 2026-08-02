@@ -8,19 +8,13 @@
 
 namespace ComponentObjectsWidgets {
 
-QWidget* CurrentComponentByPtr(QWidget* component, QWidget* parent) {
-    if (dynamic_cast<Label*>(component)) {
-        return new Label{parent};
-    } else {
-        Q_ASSERT(false);
-    }
-}
-
 Type ComponentObjectsStringToType(const QString& str_type) {
     if(str_type == "None")
         return Type::None;
     if(str_type == "Label")
         return Type::Label;
+    if(str_type == "Script")
+        return Type::Script;
     if(str_type == "Other")
         return Type::Other;
 
@@ -149,6 +143,19 @@ bool Label::isInResizeArea(const QPoint &p)
     int MARGIN = 8;
     return p.x() >= width()  - MARGIN &&
            p.y() >= height() - MARGIN;
+}
+
+Script::Script(QWidget* parent)
+    : ComponentObjectWgtInterface(parent) {
+
+}
+
+void Script::SetObserver(COW_ObserverBase* observer) {
+    observer_ = observer;
+}
+
+const QString Script::GetStringType() const {
+    return "Script";
 }
 
 }   //ComponentObjectsWidgets

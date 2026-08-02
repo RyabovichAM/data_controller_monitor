@@ -8,12 +8,10 @@
 namespace ComponentObjectsWidgets {
 
 enum class Type {
-    None, Label, Other
+    None, Label, Script, Other
 };
 
-QWidget* CurrentComponentByPtr(QWidget* component, QWidget* parent = nullptr);
 Type ComponentObjectsStringToType(const QString& str_type);
-
 
 class COW_ObserverBase  : QObject {
 public:
@@ -58,6 +56,17 @@ private:
     QLabel* main_lbl_;
     void showContextMenu(const QPoint& pos);
     bool isInResizeArea(const QPoint &p);
+};
+
+class Script : public ComponentObjectWgtInterface {
+    Q_OBJECT
+public:
+    Script(QWidget* parent = nullptr);
+    void SetObserver(COW_ObserverBase* observer) override;
+    const QString GetStringType() const override;
+
+private:
+    COW_ObserverBase* observer_{nullptr};
 };
 
 ComponentObjectWgtInterface* MakeComponentObjectsWgt(Type type, QWidget* parent);
