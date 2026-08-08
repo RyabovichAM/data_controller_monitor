@@ -1,9 +1,6 @@
 #include "monitor_unit.h"
 
-#include <QMessageBox>
-
 #include "transfer_factory.h"
-#include "data_storage_factory.h"
 
 namespace app {
 
@@ -26,18 +23,22 @@ void MonitorUnit::SetObserver(MU_ObserverBase* observer) {
     observer_ = observer;
 }
 
+void MonitorUnit::SetErrorHandler(ErrorHandler handler) {
+    error_handler_ = handler;
+}
+
 void MonitorUnit::SetName(const QString& name) {
     mu_unit_name_ = name;
 }
 
-data_storage::DataStorageInterface<MonitorUnit::DataStorageSaveType, MonitorUnit::DataStorageLoadType>*
-        MonitorUnit::DataStorage() const {
-    return data_storage_.get();
+const QString& MonitorUnit::Name() const {
+    return mu_unit_name_;
 }
 
 void MonitorUnit::SetSettings(const MonitorUnitSettings& settings) {
     settings_ = settings;
 }
+
 const MonitorUnitSettings& MonitorUnit::Settings() const {
     return settings_;
 }
@@ -45,22 +46,14 @@ const MonitorUnitSettings& MonitorUnit::Settings() const {
 void MonitorUnit::StartTransmission() {
     transfer_ = transfer::TransferFactory::CreateTransfer(settings_.transfer);
 
-    if(data_storage_) {
-        transfer_->SetJsonReceivedDataHandler([self = this](const QJsonDocument& data){
-            if(self->observer_)
-                self->observer_->Update(data);
-            self->data_storage_->DataSave(data.toJson(QJsonDocument::Compact));
-        });
-    } else {
-        transfer_->SetJsonReceivedDataHandler([self = this](const QJsonDocument& data){
-            if(self->observer_)
-                self->observer_->Update(data);
-        });
-    }
+    transfer_->SetJsonReceivedDataHandler([self = this](const QJsonDocument& data){
+        if(self->observer_)
+            self->observer_->Update(data);
+    });
+
     transfer_->Run([self = this](const QString& err){
-        QMessageBox::warning(nullptr, "Transmission Error",
-                            "Unable to start the transmission: "
-                                 + err);
+        if(self->error_handler_)
+            self->error_handler_("Unable to start the transmission: " + err);
     });
 }
 
@@ -71,36 +64,12 @@ void MonitorUnit::StopTransmission() {
     }
 }
 
-void MonitorUnit::InitDataSaving() {
-    if(settings_.data_storage["is_enable"] == "not_enable") {
-        return;
-    }
-
-    settings_.data_storage["location"] += mu_unit_name_ + "/";
-    data_storage_ = data_storage::DataStorageFactory::CreateDataStorage<QString,QList<QPair<QDateTime,QJsonDocument>>>(
-                                                settings_.data_storage);
-    data_storage_->SetErrorHandler([self = this](const QString& error) {
-        QMessageBox::warning(nullptr, "DataStorage Error",
-                             error);
-    });
-    data_storage_->Open();
-}
-
-void MonitorUnit::DeinitDataSaving() {
-    if(data_storage_) {
-        data_storage_->Close();
-        data_storage_.reset();
-    }
-}
-
 void MonitorUnit::Start() {
-    InitDataSaving();
     StartTransmission();
 }
 
 void MonitorUnit::Stop() {
     StopTransmission();
-    DeinitDataSaving();
 }
 
 }   //app

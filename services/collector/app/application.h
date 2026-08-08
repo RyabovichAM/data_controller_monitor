@@ -2,7 +2,6 @@
 #define APPLICATION_H
 
 #include <QObject>
-#include <QWidget>
 
 #include "app_domain.h"
 #include "monitor_unit.h"
