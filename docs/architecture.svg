@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="850" viewBox="0 0 1400 850" font-family="Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5568"/>
+    </marker>
+    <marker id="arwp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#a0aec0"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="850" fill="#ffffff"/>
+
+  <text x="40" y="48" font-size="26" font-weight="700" fill="#1a202c">Архитектура data_controller_monitor</text>
+  <text x="40" y="74" font-size="14" fill="#718096">Микросервисы, потоки данных и текущий статус реализации</text>
+
+  <rect x="1010" y="34" width="16" height="16" rx="3" fill="#f0fdf4" stroke="#2f855a" stroke-width="2"/>
+  <text x="1034" y="47" font-size="13" fill="#4a5568">готово</text>
+  <rect x="1110" y="34" width="16" height="16" rx="3" fill="#fffbeb" stroke="#b7791f" stroke-width="2"/>
+  <text x="1134" y="47" font-size="13" fill="#4a5568">частично</text>
+  <rect x="1230" y="34" width="16" height="16" rx="3" fill="#f7fafc" stroke="#a0aec0" stroke-width="2" stroke-dasharray="4 3"/>
+  <text x="1254" y="47" font-size="13" fill="#4a5568">план</text>
+
+  <!-- ================= Контроллеры ================= -->
+  <g>
+    <rect x="40" y="180" width="210" height="110" rx="10" fill="#edf2f7" stroke="#4a5568" stroke-width="2"/>
+    <text x="56" y="208" font-size="16" font-weight="700" fill="#1a202c">Контроллеры</text>
+    <text x="56" y="228" font-size="12" fill="#718096">внешнее оборудование</text>
+    <text x="56" y="254" font-size="12.5" fill="#2d3748">Источник телеметрии.</text>
+    <text x="56" y="272" font-size="12.5" fill="#2d3748">Шлют JSON построчно.</text>
+  </g>
+
+  <!-- ================= collector ================= -->
+  <g>
+    <rect x="310" y="150" width="250" height="170" rx="10" fill="#f0fdf4" stroke="#2f855a" stroke-width="2.5"/>
+    <text x="328" y="178" font-size="17" font-weight="700" fill="#22543d">collector</text>
+    <text x="328" y="197" font-size="12" fill="#718096">Docker · C++ / Qt6</text>
+    <text x="328" y="223" font-size="12.5" fill="#2d3748">TcpIpTransfer / SerialTransfer</text>
+    <text x="328" y="241" font-size="12.5" fill="#2d3748">MonitorUnit</text>
+    <text x="328" y="259" font-size="12.5" fill="#2d3748">Kafka producer</text>
+    <text x="328" y="285" font-size="12" fill="#718096">Принимает данные с железа</text>
+    <text x="328" y="302" font-size="12" fill="#718096">и публикует их в топик.</text>
+  </g>
+
+  <!-- ================= Kafka ================= -->
+  <g>
+    <rect x="630" y="165" width="190" height="140" rx="10" fill="#f0fdf4" stroke="#2f855a" stroke-width="2.5"/>
+    <text x="648" y="193" font-size="17" font-weight="700" fill="#22543d">Kafka</text>
+    <text x="648" y="212" font-size="12" fill="#718096">Docker · брокер</text>
+    <text x="648" y="238" font-size="12.5" font-weight="600" fill="#2d3748">topic: sensor-data</text>
+    <text x="648" y="264" font-size="12" fill="#718096">Копит сообщения, пока</text>
+    <text x="648" y="281" font-size="12" fill="#718096">подписчики их не прочтут.</text>
+    <text x="648" y="298" font-size="12" fill="#718096">Сбор не зависит от UI.</text>
+  </g>
+
+  <!-- ================= storage-service ================= -->
+  <g>
+    <rect x="890" y="95" width="270" height="150" rx="10" fill="#fffbeb" stroke="#b7791f" stroke-width="2.5"/>
+    <text x="908" y="123" font-size="17" font-weight="700" fill="#744210">storage-service</text>
+    <text x="908" y="142" font-size="12" fill="#718096">Docker · C++ / Qt6</text>
+    <text x="908" y="168" font-size="12.5" fill="#2d3748">Kafka consumer — готово</text>
+    <text x="908" y="186" font-size="12.5" fill="#2d3748">FileDataStorage — готово</text>
+    <text x="908" y="204" font-size="12.5" fill="#a0aec0">TimescaleDBDataStorage — план</text>
+    <text x="908" y="222" font-size="12.5" fill="#a0aec0">gRPC server DataLoad — план</text>
+  </g>
+
+  <!-- ================= TimescaleDB ================= -->
+  <g>
+    <rect x="1230" y="115" width="155" height="110" rx="10" fill="#f7fafc" stroke="#a0aec0" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="1246" y="143" font-size="16" font-weight="700" fill="#4a5568">TimescaleDB</text>
+    <text x="1246" y="162" font-size="12" fill="#a0aec0">Docker · БД</text>
+    <text x="1246" y="188" font-size="12" fill="#718096">Хранит временные</text>
+    <text x="1246" y="205" font-size="12" fill="#718096">ряды телеметрии.</text>
+  </g>
+
+  <!-- ================= backend ================= -->
+  <g>
+    <rect x="890" y="330" width="270" height="150" rx="10" fill="#f7fafc" stroke="#a0aec0" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="908" y="358" font-size="17" font-weight="700" fill="#4a5568">backend</text>
+    <text x="908" y="377" font-size="12" fill="#a0aec0">Docker · C++</text>
+    <text x="908" y="403" font-size="12.5" fill="#718096">Kafka consumer</text>
+    <text x="908" y="421" font-size="12.5" fill="#718096">gRPC client</text>
+    <text x="908" y="439" font-size="12.5" fill="#718096">REST / WebSocket API</text>
+    <text x="908" y="463" font-size="12" fill="#a0aec0">Реальное время в браузер.</text>
+  </g>
+
+  <!-- ================= web-ui ================= -->
+  <g>
+    <rect x="1230" y="350" width="155" height="120" rx="10" fill="#f7fafc" stroke="#a0aec0" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="1246" y="378" font-size="16" font-weight="700" fill="#4a5568">web-ui</text>
+    <text x="1246" y="397" font-size="12" fill="#a0aec0">Browser · React + TS</text>
+    <text x="1246" y="423" font-size="12" fill="#718096">Мнемосхемы,</text>
+    <text x="1246" y="440" font-size="12" fill="#718096">графики, настройка</text>
+    <text x="1246" y="457" font-size="12" fill="#718096">collector'ов.</text>
+  </g>
+
+  <!-- ================= config-service ================= -->
+  <g>
+    <rect x="310" y="560" width="250" height="160" rx="10" fill="#f7fafc" stroke="#a0aec0" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="328" y="588" font-size="17" font-weight="700" fill="#4a5568">config-service</text>
+    <text x="328" y="607" font-size="12" fill="#a0aec0">Docker · C++</text>
+    <text x="328" y="633" font-size="12.5" fill="#718096">gRPC server</text>
+    <text x="328" y="651" font-size="12.5" fill="#718096">GetConfig — при старте</text>
+    <text x="328" y="669" font-size="12.5" fill="#718096">WatchConfig — стрим</text>
+    <text x="328" y="694" font-size="12" fill="#a0aec0">Настройки collector'ов,</text>
+    <text x="328" y="711" font-size="12" fill="#a0aec0">hot reload без рестарта.</text>
+  </g>
+
+  <!-- ================= PostgreSQL ================= -->
+  <g>
+    <rect x="40" y="590" width="210" height="100" rx="10" fill="#f7fafc" stroke="#a0aec0" stroke-width="2" stroke-dasharray="6 4"/>
+    <text x="56" y="618" font-size="16" font-weight="700" fill="#4a5568">PostgreSQL</text>
+    <text x="56" y="637" font-size="12" fill="#a0aec0">Docker · БД</text>
+    <text x="56" y="663" font-size="12" fill="#718096">Конфигурация</text>
+    <text x="56" y="680" font-size="12" fill="#718096">collector'ов.</text>
+  </g>
+
+  <!-- ================= Стрелки ================= -->
+
+  <!-- Контроллеры -> collector -->
+  <path d="M 250 235 H 302" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+  <text x="256" y="226" font-size="11.5" fill="#4a5568">JSON</text>
+
+  <!-- collector -> Kafka -->
+  <path d="M 560 235 H 622" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+  <text x="566" y="226" font-size="11.5" fill="#4a5568">publish</text>
+
+  <!-- Kafka -> storage-service -->
+  <path d="M 820 205 C 855 205, 855 170, 882 170" stroke="#4a5568" stroke-width="2" fill="none" marker-end="url(#arw)"/>
+  <text x="826" y="163" font-size="11.5" fill="#4a5568">consume</text>
+
+  <!-- Kafka -> backend -->
+  <path d="M 820 270 C 855 270, 855 405, 882 405" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arwp)"/>
+  <text x="826" y="330" font-size="11.5" fill="#a0aec0">consume</text>
+
+  <!-- storage-service -> TimescaleDB -->
+  <path d="M 1160 170 H 1222" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arwp)"/>
+  <text x="1178" y="161" font-size="11.5" fill="#a0aec0">SQL</text>
+
+  <!-- backend -> storage-service (gRPC DataLoad) -->
+  <path d="M 1025 322 V 253" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arwp)"/>
+  <text x="1035" y="292" font-size="11.5" fill="#a0aec0">gRPC DataLoad</text>
+
+  <!-- backend -> web-ui -->
+  <path d="M 1160 405 H 1222" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arwp)"/>
+  <text x="1166" y="396" font-size="11.5" fill="#a0aec0">REST / WS</text>
+
+  <!-- collector -> config-service -->
+  <path d="M 435 320 V 552" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arwp)"/>
+  <text x="445" y="420" font-size="11.5" fill="#a0aec0">gRPC GetConfig</text>
+  <text x="445" y="437" font-size="11.5" fill="#a0aec0">gRPC WatchConfig</text>
+
+  <!-- config-service -> PostgreSQL -->
+  <path d="M 310 640 H 258" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arwp)"/>
+
+  <!-- backend -> config-service (SaveConfig) -->
+  <path d="M 1025 480 V 765 H 435 V 728" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 4" marker-end="url(#arwp)"/>
+  <text x="700" y="758" font-size="11.5" fill="#a0aec0">gRPC SaveConfig</text>
+
+  <!-- ================= Подпись ================= -->
+  <text x="40" y="806" font-size="12.5" fill="#718096">Проверено end-to-end: контроллер → collector → Kafka → storage-service → файл на диске.</text>
+  <text x="40" y="826" font-size="12.5" fill="#a0aec0">Пунктиром — сервисы и связи, которых пока нет в коде.</text>
+
+</svg>

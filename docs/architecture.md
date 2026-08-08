@@ -198,5 +198,5 @@ graph LR
 | Container | Docker | ✅ decided |
 | Database | TimescaleDB | ✅ decided |
 | gRPC proto contracts | — | ⬜ open |
-| Canvas editor approach | SVG vs Canvas API | ⬜ open |
+| Canvas editor approach | SVG | ✅ decided |
 | collector configuration | Config service + gRPC server-streaming hot reload | ✅ decided |
