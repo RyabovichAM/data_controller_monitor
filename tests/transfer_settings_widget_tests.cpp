@@ -11,7 +11,7 @@ TEST(TransferSettingsWidget, GetSetting) {
     ASSERT_TRUE(settings.contains("port_name"));
 
     ASSERT_TRUE(settings.contains("baud_rate"));
-    EXPECT_EQ(settings["baud_rate"],"110");
+    EXPECT_EQ(settings["baud_rate"],"1200");
 
     ASSERT_TRUE(settings.contains("data_bits"));
     EXPECT_EQ(settings["data_bits"],"5");
