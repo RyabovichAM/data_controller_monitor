@@ -1,0 +1,53 @@
+services:
+  kafka:
+    image: apache/kafka:3.7.0
+    environment:
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  storage-service:
+    build: ./services/storage-service
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: sensor-data
+      KAFKA_GROUP_ID: storage-service
+      STORAGE_ROOT: /data
+      STORAGE_FORMAT: text
+      STORAGE_PERIOD_MS: "0"
+    volumes:
+      - storage-data:/data
+
+  collector:
+    build: ./services/collector
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      COLLECTOR_ID: collector-1
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: sensor-data
+      TRANSFER_TYPE: TCP/IP
+      TRANSFER_HOST: 0.0.0.0
+      TRANSFER_PORT: "2323"
+    ports:
+      - "2323:2323"
+
+volumes:
+  storage-data:
