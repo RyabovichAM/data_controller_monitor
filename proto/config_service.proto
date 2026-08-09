@@ -1,0 +1,163 @@
+syntax = "proto3";
+
+package dcm.config.v1;
+
+// Settings of a single collector. Stored by config-service, read by the
+// collector itself on start and on the fly, edited through the backend.
+//
+// Data storage settings are deliberately absent: the collector only collects
+// and publishes, saving is the job of storage-service.
+
+// ---------------------------------------------------------------------------
+// Transfer
+// ---------------------------------------------------------------------------
+
+// Values match the actual rate and QSerialPort::BaudRate. The set is exactly
+// the one accepted by transfer::GetBaudRateFromString.
+enum BaudRate {
+  BAUD_RATE_UNSPECIFIED = 0;
+  BAUD_RATE_1200        = 1200;
+  BAUD_RATE_2400        = 2400;
+  BAUD_RATE_4800        = 4800;
+  BAUD_RATE_9600        = 9600;
+  BAUD_RATE_19200       = 19200;
+  BAUD_RATE_38400       = 38400;
+  BAUD_RATE_57600       = 57600;
+  BAUD_RATE_115200      = 115200;
+}
+
+// Values match the bit count and QSerialPort::DataBits.
+enum DataBits {
+  DATA_BITS_UNSPECIFIED = 0;
+  DATA_BITS_5           = 5;
+  DATA_BITS_6           = 6;
+  DATA_BITS_7           = 7;
+  DATA_BITS_8           = 8;
+}
+
+// Numbering is our own: QSerialPort::NoParity is 0, but in proto3 zero is
+// reserved for UNSPECIFIED so that "unset" stays distinguishable from "set
+// explicitly".
+enum Parity {
+  PARITY_UNSPECIFIED = 0;
+  PARITY_NONE        = 1;
+  PARITY_EVEN        = 2;
+  PARITY_ODD         = 3;
+  PARITY_SPACE       = 4;
+  PARITY_MARK        = 5;
+}
+
+enum StopBits {
+  STOP_BITS_UNSPECIFIED  = 0;
+  STOP_BITS_ONE          = 1;
+  STOP_BITS_ONE_AND_HALF = 2;
+  STOP_BITS_TWO          = 3;
+}
+
+enum FlowControl {
+  FLOW_CONTROL_UNSPECIFIED = 0;
+  FLOW_CONTROL_NONE        = 1;
+  FLOW_CONTROL_HARDWARE    = 2;
+  FLOW_CONTROL_SOFTWARE    = 3;
+}
+
+message SerialTransfer {
+  string      port_name    = 1;   // e.g. "/dev/ttyUSB0"
+  BaudRate    baud_rate    = 2;
+  DataBits    data_bits    = 3;
+  Parity      parity       = 4;
+  StopBits    stop_bits    = 5;
+  FlowControl flow_control = 6;
+}
+
+// The collector runs a TCP server and waits for controllers to connect —
+// it listens rather than dials out.
+message TcpIpTransfer {
+  string host = 1;   // listen address, "0.0.0.0" means all interfaces
+  uint32 port = 2;   // fits in quint16, zero is not a valid value
+}
+
+message TransferSettings {
+  oneof kind {
+    SerialTransfer serial = 1;
+    TcpIpTransfer  tcp_ip = 2;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Kafka
+// ---------------------------------------------------------------------------
+
+message KafkaSettings {
+  string brokers = 1;   // broker list, e.g. "kafka:9092"
+  string topic   = 2;   // "sensor-data" by default
+}
+
+// ---------------------------------------------------------------------------
+// Collector configuration
+// ---------------------------------------------------------------------------
+
+message CollectorConfig {
+  string           collector_id = 1;   // unique id, also the Kafka message key
+  TransferSettings transfer     = 2;
+  KafkaSettings    kafka        = 3;
+
+  // Incremented on every save. The collector compares it against its own
+  // current one to avoid reconfiguring on an equivalent config.
+  int64 version = 4;
+}
+
+// ---------------------------------------------------------------------------
+// RPC
+// ---------------------------------------------------------------------------
+
+message GetConfigRequest {
+  string collector_id = 1;
+}
+
+message WatchConfigRequest {
+  string collector_id = 1;
+
+  // Version already applied by the client. The server sends the current config
+  // immediately if its version is greater, and then on every change.
+  int64 known_version = 2;
+}
+
+message SaveConfigRequest {
+  CollectorConfig config = 1;
+
+  // Version the edit was based on. If it lags behind the current one the
+  // server replies FAILED_PRECONDITION — this guards against two editors
+  // racing each other. Zero means overwrite unconditionally.
+  int64 expected_version = 2;
+}
+
+message SaveConfigResponse {
+  int64 version = 1;   // version after the save
+}
+
+message ListCollectorsRequest {}
+
+message ListCollectorsResponse {
+  repeated CollectorConfig configs = 1;
+}
+
+message DeleteCollectorRequest {
+  string collector_id = 1;
+}
+
+message DeleteCollectorResponse {}
+
+service ConfigService {
+  // One-shot call made by the collector on start.
+  rpc GetConfig(GetConfigRequest) returns (CollectorConfig);
+
+  // Long-lived stream: the server pushes a new config on every change.
+  // This is the hot reload path — the collector reconfigures without a restart.
+  rpc WatchConfig(WatchConfigRequest) returns (stream CollectorConfig);
+
+  // Called by the backend on behalf of the UI.
+  rpc SaveConfig(SaveConfigRequest) returns (SaveConfigResponse);
+  rpc ListCollectors(ListCollectorsRequest) returns (ListCollectorsResponse);
+  rpc DeleteCollector(DeleteCollectorRequest) returns (DeleteCollectorResponse);
+}

@@ -148,6 +148,61 @@ gRPC API:
 
 ---
 
+## gRPC контракты
+
+Определены в [`proto/`](../proto), proto3, по файлу на сервис.
+
+| Файл | Пакет | Служба |
+|------|-------|--------|
+| [`config_service.proto`](../proto/config_service.proto) | `dcm.config.v1` | `ConfigService` |
+| [`storage_service.proto`](../proto/storage_service.proto) | `dcm.storage.v1` | `StorageService` |
+
+### ConfigService
+
+| RPC | Тип | Кто зовёт |
+|-----|-----|-----------|
+| `GetConfig` | унарный | collector при старте |
+| `WatchConfig` | server-streaming | collector, hot reload |
+| `SaveConfig` | унарный | backend из UI |
+| `ListCollectors` | унарный | backend из UI |
+| `DeleteCollector` | унарный | backend из UI |
+
+Решения, заложенные в контракт:
+
+- **Настройки хранения в конфиг не входят.** `collector` только собирает и
+  публикует; куда и как сохранять — дело `storage-service`. Это следствие
+  выноса `data_storage` из `MonitorUnit`.
+- **`TransferSettings` — это `oneof`,** а не набор необязательных полей:
+  транспорт всегда ровно один, и контракт не позволяет задать оба сразу.
+- **Значения enum'ов совпадают с физическими,** `BAUD_RATE_115200 = 115200`,
+  `DATA_BITS_8 = 8`. Приводятся к `QSerialPort::BaudRate` прямым `static_cast`.
+  Исключения — `Parity`, `StopBits`, `FlowControl`: у них в Qt нулевое значение
+  занято осмысленным вариантом, а в proto3 ноль обязан значить «не задано»,
+  поэтому нумерация своя.
+- **`version` в `CollectorConfig`** растёт при каждом сохранении. `WatchConfig`
+  принимает `known_version`, чтобы не перенастраивать collector зря; `SaveConfig`
+  принимает `expected_version` и отвечает `FAILED_PRECONDITION`, если конфиг
+  успели изменить из другого места.
+
+### StorageService
+
+| RPC | Тип | Кто зовёт |
+|-----|-----|-----------|
+| `DataLoad` | server-streaming | backend, история для графиков |
+| `ListCollectors` | унарный | backend |
+
+- **`DataLoad` — стрим,** потому что запрошенный диапазон может быть за месяцы;
+  складывать его целиком в память не нужно ни серверу, ни клиенту.
+- **Тело точки — строка JSON,** ровно та, что опубликовал collector. Схему
+  параметров задаёт контроллер, а не мы, поэтому типизировать её нечем.
+- **`ListCollectors` здесь и в `ConfigService` — разные списки:** в конфиге
+  настроенные collector'ы, в хранилище — реально приславшие данные.
+
+Реальное время в этих контрактах не участвует: backend получает его из Kafka
+напрямую, минуя `storage-service`.
+
+---
+
 ## Potential future services
 
 Сервисы не включены в текущую реализацию, но типичны для промышленных SCADA-систем.
@@ -197,6 +252,6 @@ graph LR
 | backend → storage (history) | gRPC | ✅ decided |
 | Container | Docker | ✅ decided |
 | Database | TimescaleDB | ✅ decided |
-| gRPC proto contracts | — | ⬜ open |
+| gRPC proto contracts | proto3, `ConfigService` + `StorageService` | ✅ decided |
 | Canvas editor approach | SVG | ✅ decided |
 | collector configuration | Config service + gRPC server-streaming hot reload | ✅ decided |

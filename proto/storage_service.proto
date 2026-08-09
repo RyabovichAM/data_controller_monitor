@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package dcm.storage.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Historical data served by storage-service to the backend for charts and
+// tables. Real time traffic does not go through here — the backend consumes
+// it straight from Kafka, bypassing storage-service.
+
+// A single point of the series: exactly what the controller sent, plus the
+// time it was received. Mirrors QPair<QDateTime, QJsonDocument> in data_storage.
+message DataPoint {
+  google.protobuf.Timestamp timestamp = 1;
+
+  // Body as published by the collector: compact JSON, an arbitrary set of
+  // parameters. The schema is defined by the controller rather than by us,
+  // so there is nothing here to parse it into.
+  string payload_json = 2;
+}
+
+message DataLoadRequest {
+  string collector_id = 1;
+
+  // Half-open interval [from, to). An empty from means "since the beginning
+  // of history", an empty to means "up to now".
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to   = 3;
+
+  // Maximum number of points in the response, 0 means unlimited. Keeps the UI
+  // from pulling a month-long series on its very first request.
+  uint32 limit = 4;
+}
+
+message ListCollectorsRequest {}
+
+message ListCollectorsResponse {
+  // Ids of collectors that have anything at all in storage. Not the same as
+  // the list in config-service: that one holds configured collectors, this one
+  // holds collectors that actually sent data.
+  repeated string collector_ids = 1;
+}
+
+service StorageService {
+  // A stream rather than a single response: the requested range may span
+  // months, and neither side needs to hold it in memory at once.
+  // Points are ordered by ascending timestamp.
+  rpc DataLoad(DataLoadRequest) returns (stream DataPoint);
+
+  rpc ListCollectors(ListCollectorsRequest) returns (ListCollectorsResponse);
+}
