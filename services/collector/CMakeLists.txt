@@ -10,6 +10,9 @@ find_package(Qt6 COMPONENTS Core Network SerialPort REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(RDKAFKA REQUIRED IMPORTED_TARGET rdkafka++)
 
+# gRPC contracts shared by all services, generated at build time.
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../proto ${CMAKE_BINARY_DIR}/proto)
+
 file(GLOB_RECURSE COLLECTOR_SRC app/*.cpp app/*.h transfer/*.cpp transfer/*.h kafka/*.cpp kafka/*.h)
 
 add_executable(collector main.cpp ${COLLECTOR_SRC})
@@ -22,4 +25,5 @@ target_include_directories(collector PRIVATE
 
 target_link_libraries(collector PRIVATE
     Qt6::Core Qt6::Network Qt6::SerialPort
-    PkgConfig::RDKAFKA)
+    PkgConfig::RDKAFKA
+    dcm_proto)

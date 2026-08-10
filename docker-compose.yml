@@ -20,7 +20,9 @@ services:
       retries: 10
 
   storage-service:
-    build: ./services/storage-service
+    build:
+      context: .
+      dockerfile: services/storage-service/Dockerfile
     depends_on:
       kafka:
         condition: service_healthy
@@ -35,7 +37,9 @@ services:
       - storage-data:/data
 
   collector:
-    build: ./services/collector
+    build:
+      context: .
+      dockerfile: services/collector/Dockerfile
     depends_on:
       kafka:
         condition: service_healthy

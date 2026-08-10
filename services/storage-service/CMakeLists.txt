@@ -9,6 +9,9 @@ find_package(Qt6 COMPONENTS Core REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(RDKAFKA REQUIRED IMPORTED_TARGET rdkafka++)
 
+# gRPC contracts shared by all services, generated at build time.
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../proto ${CMAKE_BINARY_DIR}/proto)
+
 file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h kafka/*.cpp kafka/*.h)
 
 add_executable(storage-service main.cpp ${STORAGE_SRC})
@@ -20,4 +23,5 @@ target_include_directories(storage-service PRIVATE
 
 target_link_libraries(storage-service PRIVATE
     Qt6::Core
-    PkgConfig::RDKAFKA)
+    PkgConfig::RDKAFKA
+    dcm_proto)

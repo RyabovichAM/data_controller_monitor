@@ -157,6 +157,20 @@ gRPC API:
 | [`config_service.proto`](../proto/config_service.proto) | `dcm.config.v1` | `ConfigService` |
 | [`storage_service.proto`](../proto/storage_service.proto) | `dcm.storage.v1` | `StorageService` |
 
+Сборка: [`proto/CMakeLists.txt`](../proto/CMakeLists.txt) собирает оба контракта в
+статическую библиотеку `dcm_proto`. `protobuf_generate` запускает `protoc` на этапе
+сборки — отдельно для сообщений (`*.pb.*`) и для служб (`*.grpc.pb.*`, через
+`grpc_cpp_plugin`), результат попадает в каталог сборки. Сервис подключает контракты
+двумя строками:
+
+```cmake
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../proto ${CMAKE_BINARY_DIR}/proto)
+target_link_libraries(<service> PRIVATE dcm_proto)
+```
+
+`proto/` лежит выше сервисов, поэтому контекст сборки Docker-образов — корень
+репозитория: в `docker-compose.yml` у сервисов `context: .` и явный `dockerfile:`.
+
 ### ConfigService
 
 | RPC | Тип | Кто зовёт |
