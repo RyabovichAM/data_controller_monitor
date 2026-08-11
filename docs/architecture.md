@@ -198,6 +198,51 @@ target_link_libraries(<service> PRIVATE dcm_proto)
   принимает `expected_version` и отвечает `FAILED_PRECONDITION`, если конфиг
   успели изменить из другого места.
 
+#### Реализация
+
+[`services/config-service/`](../services/config-service) — синхронный gRPC-сервер
+поверх PostgreSQL. Qt не подключается: переиспользовать из монолита здесь нечего.
+
+| Файл | Ответственность |
+|------|-----------------|
+| [`storage/config_repository.h`](../services/config-service/storage/config_repository.h) | интерфейс хранилища — SQL не виден слою gRPC |
+| [`storage/postgres_config_repository.cpp`](../services/config-service/storage/postgres_config_repository.cpp) | PostgreSQL: схема, версии, реконнект |
+| [`service/watch_registry.cpp`](../services/config-service/service/watch_registry.cpp) | подписчики `WatchConfig` |
+| [`service/config_service_impl.cpp`](../services/config-service/service/config_service_impl.cpp) | пять RPC, валидация, коды ошибок |
+
+```sql
+CREATE TABLE collector_config (
+    collector_id TEXT PRIMARY KEY,
+    config       JSONB       NOT NULL,
+    version      BIGINT      NOT NULL,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+- **Конфиг лежит целиком в JSONB, а не разложен по колонкам.** Его схема — это
+  сам контракт, раскладку пришлось бы переписывать при каждой правке `.proto`, а
+  читается и пишется конфиг всегда целиком. `version` вынесена в отдельную
+  колонку: её нужно блокировать и сравнивать, не разбирая JSON.
+- **Проверка версии идёт в транзакции.** `SELECT version ... FOR UPDATE` держит
+  строку до коммита, поэтому два одновременных `SaveConfig` не могут прочитать
+  одну и ту же версию и выставить одну и ту же новую.
+- **`WatchConfig` на неизвестный collector не падает,** а держит стрим открытым:
+  collector мог стартовать раньше, чем его настроили. Конфиг уедет в стрим сразу
+  после первого `SaveConfig`.
+- **`DeleteCollector` обрывает стримы** удалённого collector'а с `NOT_FOUND` —
+  иначе они бесконечно ждали бы конфиг, которого больше нет.
+- **Валидация до сохранения:** пустой `collector_id`, незаданный `oneof transfer`,
+  `UNSPECIFIED` в enum'ах Serial, порт вне диапазона, пустые настройки Kafka →
+  `INVALID_ARGUMENT`. Отказ должен случиться там, где на него смотрит человек, а
+  не в collector'е, где никто не ждёт ответа.
+- **Одно соединение с БД под мьютексом.** gRPC обслуживает вызовы пулом потоков, а
+  `pqxx::connection` не потокобезопасен; для трафика конфигов пул соединений
+  избыточен. Соединение, разорванное перезапуском postgres, переоткрывается, и
+  операция повторяется один раз.
+
+Настройки — через окружение: `CONFIG_SERVICE_ADDRESS` (по умолчанию
+`0.0.0.0:50051`) и `POSTGRES_DSN`.
+
 ### StorageService
 
 | RPC | Тип | Кто зовёт |

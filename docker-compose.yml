@@ -19,6 +19,34 @@ services:
       timeout: 10s
       retries: 10
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: dcm
+      POSTGRES_PASSWORD: dcm
+      POSTGRES_DB: dcm_config
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dcm -d dcm_config"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - config-db:/var/lib/postgresql/data
+
+  config-service:
+    build:
+      context: .
+      dockerfile: services/config-service/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      CONFIG_SERVICE_ADDRESS: 0.0.0.0:50051
+      POSTGRES_DSN: postgresql://dcm:dcm@postgres:5432/dcm_config
+    # The port is not published: collector and backend reach the service inside
+    # the compose network. For debugging from the host add a published port in
+    # a compose override.
+
   storage-service:
     build:
       context: .
@@ -55,3 +83,4 @@ services:
 
 volumes:
   storage-data:
+  config-db:
