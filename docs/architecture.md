@@ -135,6 +135,38 @@ collector → gRPC WatchConfig(collector_id) → config-service
 collector получает новый конфиг → перенастраивает MonitorUnit без перезапуска
 ```
 
+#### Реализация
+
+Из окружения collector берёт только `COLLECTOR_ID` и `CONFIG_SERVICE_ADDRESS`;
+транспорт и настройки Kafka приходят из конфига. Без сохранённого конфига
+процесс не падает, а ждёт на стриме и начинает сбор, как только конфиг появится.
+
+| Файл | Ответственность |
+|------|-----------------|
+| [`config/config_client.cpp`](../services/collector/config/config_client.cpp) | `GetConfig` при старте, затем `WatchConfig` в своём потоке, переподключение |
+| [`config/config_mapping.cpp`](../services/collector/config/config_mapping.cpp) | `CollectorConfig` → `MonitorUnitSettings` |
+| [`main.cpp`](../services/collector/main.cpp) | применение конфига, пересоздание Kafka producer'а |
+| [`tests/config_mapping_test.cpp`](../services/collector/tests/config_mapping_test.cpp) | тесты маппинга, цель `collector_tests` (только Debug) |
+
+- **Стрим живёт в отдельном потоке, а конфиг применяется в потоке Qt.**
+  `QTcpServer` и `QSerialPort` принадлежат создавшему их потоку, поэтому конфиг
+  переезжает через `QMetaObject::invokeMethod`.
+- **Маппинг — единственное место, где встречаются два словаря.** Транспорт
+  разбирает настройки строками (`transfer::GetBaudRateFromString` и прочие),
+  а контракт оперирует enum'ами; значения `BaudRate` и `DataBits` совпадают с
+  физическими, поэтому переводятся числом, остальные три выписаны явно. Тесты
+  не сравнивают строки, а скармливают результат самим парсерам транспорта —
+  так переименование с любой стороны валит тест, а не collector в проде.
+- **Неприменимый конфиг не ломает работающий сбор:** маппинг бросает исключение
+  до того, как что-то остановлено, и collector продолжает на прежнем.
+- **Неизменившийся транспорт не трогается** — переоткрытие слушающего сокета
+  рвёт подключённых контроллеров. Kafka producer пересоздаётся только при смене
+  брокера или топика, со сбросом накопленного в старый топик.
+- **`known_version` не даёт применить конфиг дважды:** после обрыва стрим
+  переоткрывается с уже применённой версией.
+- Удаление конфига (`DeleteCollector`) обрывает стрим с `NOT_FOUND`, collector
+  продолжает работать на последнем полученном конфиге и ждёт нового.
+
 ### storage-service design
 
 ```
@@ -261,6 +293,33 @@ CREATE TABLE collector_config (
 напрямую, минуя `storage-service`.
 
 ---
+
+## Планы
+
+### Убрать Qt из сервисов
+
+Серверные сервисы Qt не нужен: GUI там нет, а `libQt6Core` тянет `libicu` — в
+образе collector'а это 7.5 МБ самого Qt плюс 36 МБ icu, итого 166 МБ против
+103 МБ у config-service, написанного на std.
+
+Новый код сервисов уже пишется на std (`config-service` целиком, `collector/config/`
+— кроме двух строк адаптера в `ToMonitorUnitSettings`). Qt остаётся в слоях,
+пришедших из монолита:
+
+| Слой | Что заменять |
+|------|--------------|
+| [`collector/transfer/`](../services/collector/transfer) | `QTcpServer`/`QTcpSocket` → сокеты + `poll`, `QSerialPort` → `termios`, `QHostAddress` → `inet_pton` |
+| [`collector/app/`](../services/collector/app) | `QJsonDocument` → сторонняя JSON-библиотека, `MU_ObserverBase : QObject` → обычный интерфейс |
+| [`storage-service/data_storage/`](../services/storage-service/data_storage) | `QString`, `QDateTime`, `QDir`/`QFile` → `std::string`, `std::chrono`, `std::filesystem` |
+| `main.cpp` обоих сервисов | `QCoreApplication` → свой цикл событий на `poll` |
+| `kafka/` обоих сервисов | `QString` → `std::string`, правка механическая |
+
+Главное осложнение — не объём, а то, что [корневой CMakeLists](../CMakeLists.txt#L18-L20)
+компилирует `collector/app/`, `collector/transfer/` и `storage-service/data_storage/`
+в десктопный монолит, а его виджеты завязаны на эти же классы. Значит, слои
+придётся развести: монолит остаётся на своей Qt-копии, сервисы получают версии на
+std. Это осмысленно ещё и потому, что монолит по целевой архитектуре замещается
+`web-ui`.
 
 ## Potential future services
 

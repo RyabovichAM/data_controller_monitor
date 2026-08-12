@@ -71,13 +71,14 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      config-service:
+        condition: service_started
+    # Transport and Kafka settings come from config-service. Until a config is
+    # saved for this COLLECTOR_ID the collector idles on its WatchConfig stream
+    # and starts collecting the moment one appears.
     environment:
       COLLECTOR_ID: collector-1
-      KAFKA_BROKERS: kafka:9092
-      KAFKA_TOPIC: sensor-data
-      TRANSFER_TYPE: TCP/IP
-      TRANSFER_HOST: 0.0.0.0
-      TRANSFER_PORT: "2323"
+      CONFIG_SERVICE_ADDRESS: config-service:50051
     ports:
       - "2323:2323"
 
