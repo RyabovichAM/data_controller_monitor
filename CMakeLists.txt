@@ -17,7 +17,10 @@ find_package(Qt6 COMPONENTS Widgets SerialPort Charts Network REQUIRED)
 
 file(GLOB_RECURSE TRANSFER_SRC services/collector/transfer/*.cpp services/collector/transfer/*.h)
 file(GLOB_RECURSE APP_SRC     services/collector/app/*.cpp     services/collector/app/*.h)
-file(GLOB_RECURSE STORAGE_SRC services/storage-service/data_storage/*.cpp services/storage-service/data_storage/*.h)
+# The desktop application keeps its own copy of data_storage: the one in
+# storage-service is being rewritten without Qt, and the widgets here are built
+# around QString, QDateTime and QJsonDocument.
+file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h)
 file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widgets/*.h)
 
 set(PROJECT_SOURCES
@@ -39,7 +42,7 @@ qt_add_executable(data_controller_monitor
 target_include_directories(data_controller_monitor PRIVATE
     services/collector/app/
     services/collector/transfer/
-    services/storage-service/data_storage/
+    data_storage/
     widgets/
     widgets/charts
     widgets/view_widget
@@ -67,7 +70,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_include_directories(data_controller_monitor_tests PRIVATE
       services/collector/app/
       services/collector/transfer/
-      services/storage-service/data_storage/
+      data_storage/
       widgets/
       widgets/charts
       widgets/view_widget
