@@ -1,153 +1,39 @@
 #ifndef FILE_DATA_STORAGE_DOMAIN_H
 #define FILE_DATA_STORAGE_DOMAIN_H
 
-#include <algorithm>
+#include <ctime>
 #include <optional>
-
-#include <QFile>
-#include <QTime>
-#include <QJsonDocument>
+#include <string>
 
 #include "data_storage_domain.h"
+#include "data_storage_interface.h"
 
 namespace data_storage {
 
 enum class DataFormat {
-    TEXT, BINARY
+    TEXT,
+    BINARY
 };
 
 struct FileDataStorageSettings : public DataStorageSettings {
-    DataFormat data_format;
+    DataFormat data_format{DataFormat::TEXT};
 };
 
-FileDataStorageSettings GetFileDataStorageSettingsFromHashMap(const QHash<QString, QString>& settings_map);
+// Throws std::invalid_argument on a format nobody can write.
+FileDataStorageSettings GetFileDataStorageSettings(const Settings& settings);
 
-template<typename Container>
-std::optional<typename Container::const_iterator> FindLeftTimeBoundIt(const Container& data,
-                                                                      const QTime& time_point) {
-    if(data.empty())
-        return std::nullopt;
+// A file per day named after the local date, the time written inside it is
+// local as well — that is what makes the files readable without a tool.
+std::string FormatDate(const std::tm& day);
+std::string FormatDate(TimePoint point);
+std::string FormatTime(TimePoint point);
 
-    using dataType = typename Container::value_type;
+std::tm LocalTime(TimePoint point);
 
-    auto it = std::lower_bound(data.begin(), data.end(),dataType{},
-                               [&time_point](const dataType& it_value,
-                                             const dataType& value_to_check){
-                                   if(it_value.first.time() < time_point) {
-                                       return true;
-                                   }
-                                   return false;
-                               });
+// Rebuilds a point out of the date its file is named after and a time from
+// inside it. Empty if either of them is not what it should be.
+std::optional<TimePoint> ParseTimePoint(const std::string& date, const std::string& time);
 
-    if(it == data.end())
-        return std::nullopt;
-
-    return it;
-}
-
-template<typename Container>
-std::optional<typename Container::const_iterator> FindRightTimeBoundIt(const Container& data,
-                                                                       const QTime& time_point) {
-    if(data.empty())
-        return std::nullopt;
-
-    if(data.begin()->first.time() > time_point)
-        return std::nullopt;
-
-    using dataType = typename Container::value_type;
-
-    auto it = std::upper_bound(data.begin(), data.end(),dataType{},
-                               [&time_point](const dataType& it_value,
-                                             const dataType& value_to_check){
-                                   if(value_to_check.first.time() > time_point) {
-                                       return true;
-                                   }
-                                   return false;
-                               });
-
-    return --it;
-}
-
-template<typename Container>
-void ReadFromFileToData(QFile& file, Container& data, const QDate& date, bool is_binary = false) {
-    if (is_binary) {
-        QDataStream read_stream(&file);
-        while (!read_stream.atEnd()) {
-            QString time_str;
-            QString json_data;
-
-            read_stream >> time_str >> json_data;
-
-            if (read_stream.status() != QDataStream::Ok || time_str.isEmpty() || json_data.isEmpty())
-                break;
-
-            data.emplaceBack(QDateTime{date, QTime::fromString(time_str, "hh:mm:ss")},
-                             QJsonDocument::fromJson(json_data.toUtf8()));
-        }
-    } else {
-        QTextStream read_stream(&file);
-        while (!read_stream.atEnd()) {
-            QString time_str, json_str;
-            read_stream >> time_str >> json_str;
-            if (read_stream.status() != QTextStream::Ok || time_str.isEmpty() || json_str.isEmpty())
-                break;
-
-            data.emplaceBack(QDateTime{date, QTime::fromString(time_str, "hh:mm:ss")},
-                             QJsonDocument::fromJson(json_str.toUtf8()));
-        }
-    }
-}
-
-template<typename Container>
-void AppendDataFromFile(QFile& file, Container& data,
-                        DataFormat data_format, const QDate& date,
-                        const std::optional<const QTime>& from = std::nullopt,
-                        const std::optional<const QTime>& to = std::nullopt) {
-    if(!from && !to) {
-        ReadFromFileToData(file, data, date);
-        return;
-    }
-
-    Container tmp;
-    switch(data_format) {
-        case DataFormat::TEXT:
-            ReadFromFileToData(file, tmp, date,false);
-            break;
-        case DataFormat::BINARY:
-            ReadFromFileToData(file, tmp, date,true);
-            break;
-        default:
-            Q_ASSERT("data_storage::AppendDataFromFile: wrong data save format");
-    }
-
-    if(from && to) {
-        auto left = FindLeftTimeBoundIt(tmp,*from);
-        auto right = FindRightTimeBoundIt(tmp,*to);
-
-        if(left && right) {
-            ++(*right);
-            data.append(*left, *right);
-        }
-        return;
-    }
-
-    if(from && !to) {
-        auto it = FindLeftTimeBoundIt(tmp,*from);
-        if(it)
-            data.append(*it,tmp.end());
-        return;
-    }
-
-    if(!from && to) {
-        auto it = FindRightTimeBoundIt(tmp,*to);
-        if(it) {
-            ++(*it);
-            data.append(tmp.begin(),(*it));
-        }
-        return;
-    }
-}
-
-}
+}   //data_storage
 
 #endif // FILE_DATA_STORAGE_DOMAIN_H

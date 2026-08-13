@@ -2,26 +2,26 @@
 
 namespace kafka {
 
-KafkaConsumer::KafkaConsumer(const QString& brokers, const QString& topic,
-                             const QString& group_id) {
+KafkaConsumer::KafkaConsumer(const std::string& brokers, const std::string& topic,
+                             const std::string& group_id) {
     std::string errstr;
     std::unique_ptr<RdKafka::Conf> conf{
         RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL)};
 
-    conf->set("bootstrap.servers", brokers.toStdString(), errstr);
-    conf->set("group.id", group_id.toStdString(), errstr);
+    conf->set("bootstrap.servers", brokers, errstr);
+    conf->set("group.id", group_id, errstr);
     conf->set("auto.offset.reset", "earliest", errstr);
     conf->set("enable.auto.commit", "false", errstr);
 
     consumer_.reset(RdKafka::KafkaConsumer::create(conf.get(), errstr));
     if (!consumer_) {
-        ReportError(QString::fromStdString(errstr));
+        ReportError(errstr);
         return;
     }
 
-    RdKafka::ErrorCode err = consumer_->subscribe({topic.toStdString()});
+    RdKafka::ErrorCode err = consumer_->subscribe({topic});
     if (err != RdKafka::ERR_NO_ERROR) {
-        ReportError(QString::fromStdString(RdKafka::err2str(err)));
+        ReportError(RdKafka::err2str(err));
     }
 }
 
@@ -50,13 +50,13 @@ void KafkaConsumer::Run() {
 
         switch (message->err()) {
         case RdKafka::ERR_NO_ERROR: {
-            QString key = message->key() ? QString::fromStdString(*message->key())
-                                         : QString{};
-            QByteArray payload{static_cast<const char*>(message->payload()),
-                               static_cast<int>(message->len())};
+            std::string key = message->key() ? *message->key() : std::string{};
+            std::string payload{static_cast<const char*>(message->payload()), message->len()};
             if (message_handler_) {
                 message_handler_(key, payload);
             }
+            // Committed only after the handler returned: a message that was not
+            // stored has to be delivered again.
             consumer_->commitSync();
             break;
         }
@@ -64,7 +64,7 @@ void KafkaConsumer::Run() {
         case RdKafka::ERR__PARTITION_EOF:
             break;
         default:
-            ReportError(QString::fromStdString(message->errstr()));
+            ReportError(message->errstr());
             break;
         }
     }
@@ -74,7 +74,7 @@ void KafkaConsumer::Stop() {
     running_ = false;
 }
 
-void KafkaConsumer::ReportError(const QString& message) {
+void KafkaConsumer::ReportError(const std::string& message) {
     if (error_handler_) {
         error_handler_(message);
     }

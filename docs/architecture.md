@@ -306,20 +306,37 @@ CREATE TABLE collector_config (
 — кроме двух строк адаптера в `ToMonitorUnitSettings`). Qt остаётся в слоях,
 пришедших из монолита:
 
-| Слой | Что заменять |
-|------|--------------|
+| Слой | Состояние |
+|------|-----------|
+| [`storage-service/`](../services/storage-service) | ✅ Qt убран целиком, образ 157 → 102 МБ |
 | [`collector/transfer/`](../services/collector/transfer) | `QTcpServer`/`QTcpSocket` → сокеты + `poll`, `QSerialPort` → `termios`, `QHostAddress` → `inet_pton` |
 | [`collector/app/`](../services/collector/app) | `QJsonDocument` → сторонняя JSON-библиотека, `MU_ObserverBase : QObject` → обычный интерфейс |
-| [`storage-service/data_storage/`](../services/storage-service/data_storage) | `QString`, `QDateTime`, `QDir`/`QFile` → `std::string`, `std::chrono`, `std::filesystem` |
-| `main.cpp` обоих сервисов | `QCoreApplication` → свой цикл событий на `poll` |
-| `kafka/` обоих сервисов | `QString` → `std::string`, правка механическая |
+| [`collector/main.cpp`](../services/collector/main.cpp) | `QCoreApplication` → свой цикл событий на `poll` |
+| [`collector/kafka/`](../services/collector/kafka) | `QString` → `std::string`, правка механическая |
 
-Главное осложнение — не объём, а то, что [корневой CMakeLists](../CMakeLists.txt#L18-L20)
-компилирует `collector/app/`, `collector/transfer/` и `storage-service/data_storage/`
-в десктопный монолит, а его виджеты завязаны на эти же классы. Значит, слои
-придётся развести: монолит остаётся на своей Qt-копии, сервисы получают версии на
-std. Это осмысленно ещё и потому, что монолит по целевой архитектуре замещается
-`web-ui`.
+Главное осложнение — не объём, а то, что [корневой CMakeLists](../CMakeLists.txt#L18-L23)
+компилирует слои сервисов в десктопный монолит, а его виджеты завязаны на те же
+классы. Значит, слои разводятся: монолит остаётся на своей Qt-копии, сервис
+получает версию на std. Для `data_storage` это уже сделано — копия монолита лежит
+в [`data_storage/`](../data_storage) в корне. Это осмысленно ещё и потому, что
+монолит по целевой архитектуре замещается `web-ui`.
+
+#### storage-service после выноса Qt
+
+- `DataStorageInterface` больше не шаблон: монолит параметризовал его своими
+  Qt-типами, сервису нужна ровно одна пара — сохранить строку JSON, вернуть
+  `vector<DataPoint>` с отметками времени.
+- **Текстовый формат не изменился** — `HH:MM:SS <json>` построчно, файл на день,
+  имя `dd.MM.yyyy.csv`. Файлы, записанные Qt-версией, продолжают дописываться.
+- **Двоичный формат изменён**: было представление `QDataStream` (UTF-16 с
+  префиксом длины), стало 4 байта длины big-endian + UTF-8 на каждое поле.
+  Старые `.dat` этой версией не читаются — их никто, кроме самого сервиса, и не
+  читал.
+- Первая точка теперь пишется сразу: раньше отсчёт `survey_period` начинался с
+  момента создания хранилища, и при периоде в минуту первая минута данных
+  терялась.
+- `DataLoad` реализован и закрыт тестами (`storage_service_tests`, только Debug),
+  хотя вызывать его пока некому — gRPC-сервер `DataLoad` будет следующим.
 
 ## Potential future services
 

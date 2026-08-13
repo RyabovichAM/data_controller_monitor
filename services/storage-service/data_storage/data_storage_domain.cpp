@@ -2,11 +2,23 @@
 
 namespace data_storage {
 
-DataStorageSettings GetDataStorageSettingsFromHashMap(const QHash<QString, QString>& settings_map) {
-    DataStorageSettings settings;
-    settings.place_of_save = settings_map["location"];
-    settings.survey_period = settings_map["period"].toLongLong();
-    return settings;
+namespace {
+
+std::string Value(const Settings& settings, const std::string& key) {
+    auto it = settings.find(key);
+    return it == settings.end() ? std::string{} : it->second;
+}
+
+}   //namespace
+
+DataStorageSettings GetDataStorageSettings(const Settings& settings) {
+    DataStorageSettings result;
+    result.place_of_save = Value(settings, "location");
+
+    const std::string period = Value(settings, "period");
+    result.survey_period = period.empty() ? 0 : std::stoll(period);
+
+    return result;
 }
 
 }   //data_storage
