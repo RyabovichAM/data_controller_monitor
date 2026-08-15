@@ -1,15 +1,18 @@
 #include <atomic>
+#include <chrono>
 #include <csignal>
 #include <cstdlib>
 #include <exception>
-#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <thread>
 
-#include "data_storage/data_storage_factory.h"
+#include <grpcpp/grpcpp.h>
+
+#include "data_storage/storage_registry.h"
 #include "kafka/kafka_consumer.h"
+#include "service/storage_service_impl.h"
 
 namespace {
 
@@ -27,48 +30,6 @@ std::string Env(const char* name, const std::string& fallback) {
     return (value && *value) ? std::string{value} : fallback;
 }
 
-// One storage per collector, created when its first message arrives — the
-// service learns about collectors from the topic, not from a configuration.
-class StorageRegistry {
-public:
-    StorageRegistry(const std::string& root, const std::string& data_format,
-                    const std::string& period)
-        : root_{root}
-        , data_format_{data_format}
-        , period_{period} {
-    }
-
-    data_storage::DataStorageInterface* ForCollector(const std::string& collector_id) {
-        auto it = storages_.find(collector_id);
-        if (it != storages_.end()) {
-            return it->second.get();
-        }
-
-        const std::string location = root_ + "/" + collector_id + "/";
-        std::filesystem::create_directories(location);
-
-        data_storage::Settings settings;
-        settings["type"] = "file";
-        settings["location"] = location;
-        settings["data_format"] = data_format_;
-        settings["period"] = period_;
-
-        auto storage = data_storage::DataStorageFactory::CreateDataStorage(settings);
-        storage->SetErrorHandler([collector_id](const std::string& error) {
-            std::cout << "[storage:" << collector_id << "] " << error << std::endl;
-        });
-        storage->Open();
-
-        return storages_.emplace(collector_id, std::move(storage)).first->second.get();
-    }
-
-private:
-    std::unordered_map<std::string, std::unique_ptr<data_storage::DataStorageInterface>> storages_;
-    std::string root_;
-    std::string data_format_;
-    std::string period_;
-};
-
 }   //namespace
 
 int main() {
@@ -78,8 +39,9 @@ int main() {
     const std::string root = Env("STORAGE_ROOT", "/data");
     const std::string data_format = Env("STORAGE_FORMAT", "text");
     const std::string period = Env("STORAGE_PERIOD_MS", "0");
+    const std::string address = Env("STORAGE_SERVICE_ADDRESS", "0.0.0.0:50052");
 
-    StorageRegistry registry{root, data_format, period};
+    data_storage::StorageRegistry registry{root, data_format, period};
 
     kafka::KafkaConsumer consumer{brokers, topic, group_id};
     consumer.SetErrorHandler([](const std::string& error) {
@@ -95,14 +57,35 @@ int main() {
         }
     });
 
+    storage::StorageServiceImpl service{registry};
+
+    grpc::ServerBuilder builder;
+    builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+    builder.RegisterService(&service);
+
+    std::unique_ptr<grpc::Server> server{builder.BuildAndStart()};
+    if (!server) {
+        std::cerr << "[storage-service] cannot listen on " << address << std::endl;
+        return 1;
+    }
+
+    // The consumer keeps the main thread, the server gets one of its own: both
+    // block, and the consumer is the one that has to see the signal.
+    std::thread server_thread{[&server]() { server->Wait(); }};
+
     running_consumer = &consumer;
     std::signal(SIGINT, RequestStop);
     std::signal(SIGTERM, RequestStop);
 
     std::cout << "[storage-service] " << brokers << " topic=" << topic << " root=" << root
-              << std::endl;
+              << " grpc=" << address << std::endl;
 
     consumer.Run();
+
+    // The deadline cancels DataLoad streams, which would otherwise hold the
+    // shutdown for as long as their clients keep reading.
+    server->Shutdown(std::chrono::system_clock::now() + std::chrono::seconds{2});
+    server_thread.join();
 
     return 0;
 }

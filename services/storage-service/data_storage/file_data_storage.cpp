@@ -1,7 +1,10 @@
 #include "file_data_storage.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <filesystem>
 #include <optional>
+#include <utility>
 
 namespace data_storage {
 
@@ -111,34 +114,45 @@ void FileDataStorage::DataSave(const std::string& json) {
     }
 }
 
-std::vector<DataPoint> FileDataStorage::DataLoad(TimePoint from, TimePoint to) {
-    std::vector<DataPoint> points;
-    if (from > to) {
-        return points;
+void FileDataStorage::DataLoad(TimePoint from, TimePoint to, const DataSink& sink) {
+    if (from >= to || !sink) {
+        return;
     }
 
-    std::tm day = LocalTime(from);
-    const std::string last_date = FormatDate(to);
+    // The days come from what is on disk rather than from walking the range:
+    // a request may start before the first file ever written, and "since the
+    // beginning of history" would then mean thousands of misses.
+    std::vector<std::pair<TimePoint, std::string>> days;
 
-    while (true) {
-        const std::string date = FormatDate(day);
-        AppendDay(date, from, to, points);
-
-        if (date == last_date) {
-            break;
+    std::error_code error;
+    for (const auto& entry :
+         std::filesystem::directory_iterator{settings_.place_of_save, error}) {
+        if (entry.path().extension() != Extension()) {
+            continue;
         }
 
-        // Midday keeps the increment clear of daylight saving transitions;
-        // mktime then normalises the end of a month.
-        day.tm_mday += 1;
-        day.tm_hour = 12;
-        day.tm_isdst = -1;
-        if (std::mktime(&day) == -1) {
-            break;
+        const std::string date = entry.path().stem().string();
+        std::optional<TimePoint> day_start = ParseTimePoint(date, "00:00:00");
+        if (!day_start) {
+            continue;
         }
+
+        // A coarse filter — the exact one runs per record. 25 hours because a
+        // day is longer than 24 when the clocks go back.
+        if (*day_start >= to || *day_start + std::chrono::hours{25} <= from) {
+            continue;
+        }
+
+        days.emplace_back(*day_start, date);
     }
 
-    return points;
+    std::sort(days.begin(), days.end());
+
+    for (const auto& [day_start, date] : days) {
+        if (!ReadDay(date, from, to, sink)) {
+            return;
+        }
+    }
 }
 
 bool FileDataStorage::Open() {
@@ -154,9 +168,12 @@ void FileDataStorage::Close() {
     save_file_date_.clear();
 }
 
+std::string FileDataStorage::Extension() const {
+    return settings_.data_format == DataFormat::TEXT ? ".csv" : ".dat";
+}
+
 std::string FileDataStorage::FileName(const std::string& date) const {
-    const char* extension = settings_.data_format == DataFormat::TEXT ? ".csv" : ".dat";
-    return settings_.place_of_save + date + extension;
+    return settings_.place_of_save + date + Extension();
 }
 
 bool FileDataStorage::OpenForDate(const std::string& date) {
@@ -174,23 +191,27 @@ bool FileDataStorage::OpenForDate(const std::string& date) {
     return true;
 }
 
-void FileDataStorage::AppendDay(const std::string& date, TimePoint from, TimePoint to,
-                                std::vector<DataPoint>& points) const {
+bool FileDataStorage::ReadDay(const std::string& date, TimePoint from, TimePoint to,
+                              const DataSink& sink) const {
     std::ifstream file{FileName(date), std::ios::in | std::ios::binary};
     if (!file.is_open()) {
-        return;   // a day nothing was written on is not an error
+        return true;   // a day nothing was written on is not an error
     }
 
     std::string time;
     std::string json;
     while (ReadRecord(file, settings_.data_format, time, json)) {
         std::optional<TimePoint> point = ParseTimePoint(date, time);
-        if (!point || *point < from || *point > to) {
+        if (!point || *point < from || *point >= to) {
             continue;
         }
 
-        points.push_back(DataPoint{*point, json});
+        if (!sink(DataPoint{*point, json})) {
+            return false;
+        }
     }
+
+    return true;
 }
 
 void FileDataStorage::ReportError(const std::string& message) const {

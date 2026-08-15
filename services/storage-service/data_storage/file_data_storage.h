@@ -19,7 +19,7 @@ public:
 
     void SetErrorHandler(ErrorHandler handler) override;
     void DataSave(const std::string& json) override;
-    std::vector<DataPoint> DataLoad(TimePoint from, TimePoint to) override;
+    void DataLoad(TimePoint from, TimePoint to, const DataSink& sink) override;
     bool Open() override;
     bool IsOpen() const override;
     void Close() override;
@@ -32,10 +32,13 @@ private:
     std::string save_file_date_;   // the day the open file belongs to
     TimePoint last_save_;
 
+    std::string Extension() const;
     std::string FileName(const std::string& date) const;
     bool OpenForDate(const std::string& date);
-    void AppendDay(const std::string& date, TimePoint from, TimePoint to,
-                   std::vector<DataPoint>& points) const;
+
+    // False once the sink has asked to stop.
+    bool ReadDay(const std::string& date, TimePoint from, TimePoint to,
+                 const DataSink& sink) const;
     void ReportError(const std::string& message) const;
 };
 

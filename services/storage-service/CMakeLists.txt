@@ -11,7 +11,8 @@ pkg_check_modules(RDKAFKA REQUIRED IMPORTED_TARGET rdkafka++)
 # gRPC contracts shared by all services, generated at build time.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../proto ${CMAKE_BINARY_DIR}/proto)
 
-file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h kafka/*.cpp kafka/*.h)
+file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h kafka/*.cpp kafka/*.h
+                              service/*.cpp service/*.h)
 
 add_executable(storage-service main.cpp ${STORAGE_SRC})
 
@@ -21,7 +22,8 @@ add_executable(storage-service main.cpp ${STORAGE_SRC})
 target_include_directories(storage-service PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     data_storage/
-    kafka/)
+    kafka/
+    service/)
 
 target_link_libraries(storage-service PRIVATE
     PkgConfig::RDKAFKA

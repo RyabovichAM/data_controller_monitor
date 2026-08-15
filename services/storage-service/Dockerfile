@@ -24,4 +24,6 @@ COPY --from=build /src/build/storage-service /usr/local/bin/storage-service
 
 VOLUME /data
 
+EXPOSE 50052
+
 ENTRYPOINT ["/usr/local/bin/storage-service"]

@@ -20,6 +20,17 @@ using data_storage::ParseTimePoint;
 using data_storage::Settings;
 using data_storage::TimePoint;
 
+// The storage hands points to a sink; the tests want them in one place.
+std::vector<DataPoint> Collect(data_storage::DataStorageInterface& storage, TimePoint from,
+                               TimePoint to, size_t limit = 0) {
+    std::vector<DataPoint> points;
+    storage.DataLoad(from, to, [&](const DataPoint& point) {
+        points.push_back(point);
+        return limit == 0 || points.size() < limit;
+    });
+    return points;
+}
+
 class FileDataStorageTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -68,7 +79,7 @@ TEST_F(FileDataStorageTest, SavedSamplesAreLoadedBack) {
 
     const TimePoint now = std::chrono::system_clock::now();
     std::vector<DataPoint> points =
-        storage.DataLoad(now - std::chrono::hours{1}, now + std::chrono::hours{1});
+        Collect(storage, now - std::chrono::hours{1}, now + std::chrono::hours{1});
 
     ASSERT_EQ(points.size(), 2u);
     EXPECT_EQ(points[0].json, R"({"param1":"1"})");
@@ -101,7 +112,7 @@ TEST_F(FileDataStorageTest, BinaryFormatRoundTrips) {
 
     const TimePoint now = std::chrono::system_clock::now();
     std::vector<DataPoint> points =
-        storage.DataLoad(now - std::chrono::hours{1}, now + std::chrono::hours{1});
+        Collect(storage, now - std::chrono::hours{1}, now + std::chrono::hours{1});
 
     ASSERT_EQ(points.size(), 2u);
     EXPECT_EQ(points[1].json, R"({"param1":"2"})");
@@ -116,7 +127,7 @@ TEST_F(FileDataStorageTest, FirstSampleIsKeptAndTheNextOnesAreThinned) {
 
     const TimePoint now = std::chrono::system_clock::now();
     std::vector<DataPoint> points =
-        storage.DataLoad(now - std::chrono::hours{1}, now + std::chrono::hours{1});
+        Collect(storage, now - std::chrono::hours{1}, now + std::chrono::hours{1});
 
     ASSERT_EQ(points.size(), 1u);
     EXPECT_EQ(points[0].json, R"({"param1":"1"})");
@@ -134,7 +145,7 @@ TEST_F(FileDataStorageTest, LoadReturnsOnlyTheRequestedWindow) {
     std::optional<TimePoint> to = ParseTimePoint(date, "13:00:00");
     ASSERT_TRUE(from && to);
 
-    std::vector<DataPoint> points = storage.DataLoad(*from, *to);
+    std::vector<DataPoint> points = Collect(storage, *from, *to);
 
     ASSERT_EQ(points.size(), 1u);
     EXPECT_EQ(points[0].json, R"({"n":"middle"})");
@@ -152,7 +163,7 @@ TEST_F(FileDataStorageTest, LoadSpansSeveralDays) {
     std::optional<TimePoint> to = ParseTimePoint("12.08.2026", "23:59:59");
     ASSERT_TRUE(from && to);
 
-    std::vector<DataPoint> points = storage.DataLoad(*from, *to);
+    std::vector<DataPoint> points = Collect(storage, *from, *to);
 
     ASSERT_EQ(points.size(), 2u);
     EXPECT_EQ(points[0].json, R"({"n":"first"})");
@@ -165,7 +176,7 @@ TEST_F(FileDataStorageTest, ReversedWindowLoadsNothing) {
     storage.DataSave(R"({"param1":"1"})");
 
     const TimePoint now = std::chrono::system_clock::now();
-    EXPECT_TRUE(storage.DataLoad(now + std::chrono::hours{1}, now).empty());
+    EXPECT_TRUE(Collect(storage, now + std::chrono::hours{1}, now).empty());
 }
 
 TEST_F(FileDataStorageTest, MissingDayIsNotAnError) {
@@ -175,7 +186,7 @@ TEST_F(FileDataStorageTest, MissingDayIsNotAnError) {
     std::optional<TimePoint> to = ParseTimePoint("01.01.2020", "23:59:59");
     ASSERT_TRUE(from && to);
 
-    EXPECT_TRUE(storage.DataLoad(*from, *to).empty());
+    EXPECT_TRUE(Collect(storage, *from, *to).empty());
 }
 
 TEST_F(FileDataStorageTest, UnknownFormatIsRejected) {
@@ -201,6 +212,66 @@ TEST_F(FileDataStorageTest, TimePointsSurviveTheirOwnFormatting) {
     const auto difference = std::chrono::duration_cast<std::chrono::milliseconds>(now - *parsed);
     EXPECT_LT(difference.count(), 1000);
     EXPECT_GE(difference.count(), 0);
+}
+
+TEST_F(FileDataStorageTest, TheIntervalIsHalfOpen) {
+    const std::string date = Today();
+    WriteTextDay(date, {{"10:00:00", R"({"n":"at from"})"},
+                        {"12:00:00", R"({"n":"at to"})"}});
+
+    FileDataStorage storage{SettingsFor("text")};
+
+    std::optional<TimePoint> from = ParseTimePoint(date, "10:00:00");
+    std::optional<TimePoint> to = ParseTimePoint(date, "12:00:00");
+    ASSERT_TRUE(from && to);
+
+    std::vector<DataPoint> points = Collect(storage, *from, *to);
+
+    // [from, to): the point standing on from is in, the one on to is not.
+    ASSERT_EQ(points.size(), 1u);
+    EXPECT_EQ(points[0].json, R"({"n":"at from"})");
+}
+
+TEST_F(FileDataStorageTest, UnboundedRangeReachesEveryDayOnDisk) {
+    WriteTextDay("01.01.2020", {{"00:00:01", R"({"n":"ancient"})"}});
+    WriteTextDay("31.12.2030", {{"23:59:59", R"({"n":"distant"})"}});
+
+    FileDataStorage storage{SettingsFor("text")};
+
+    // What DataLoad gets when the request leaves both bounds unset.
+    std::vector<DataPoint> points = Collect(storage, TimePoint::min(), TimePoint::max());
+
+    ASSERT_EQ(points.size(), 2u);
+    EXPECT_EQ(points[0].json, R"({"n":"ancient"})");
+    EXPECT_EQ(points[1].json, R"({"n":"distant"})");
+}
+
+TEST_F(FileDataStorageTest, TheSinkStopsTheWalk) {
+    const std::string date = Today();
+    WriteTextDay(date, {{"10:00:00", R"({"n":"1"})"},
+                        {"11:00:00", R"({"n":"2"})"},
+                        {"12:00:00", R"({"n":"3"})"}});
+
+    FileDataStorage storage{SettingsFor("text")};
+
+    // This is what the limit of DataLoadRequest does on the server.
+    std::vector<DataPoint> points = Collect(storage, TimePoint::min(), TimePoint::max(), 2);
+
+    ASSERT_EQ(points.size(), 2u);
+    EXPECT_EQ(points[1].json, R"({"n":"2"})");
+}
+
+TEST_F(FileDataStorageTest, FilesOfAnotherFormatAreIgnored) {
+    // A directory that was once written in binary must not turn into records
+    // with unparsable times when read as text.
+    WriteTextDay(Today(), {{"10:00:00", R"({"n":"text"})"}});
+    std::ofstream{root_ / (Today() + ".dat")} << "not a text day";
+
+    FileDataStorage storage{SettingsFor("text")};
+    std::vector<DataPoint> points = Collect(storage, TimePoint::min(), TimePoint::max());
+
+    ASSERT_EQ(points.size(), 1u);
+    EXPECT_EQ(points[0].json, R"({"n":"text"})");
 }
 
 }   //namespace

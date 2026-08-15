@@ -61,6 +61,9 @@ services:
       STORAGE_ROOT: /data
       STORAGE_FORMAT: text
       STORAGE_PERIOD_MS: "0"
+      # Serves the history over gRPC. Like config-service, the port stays
+      # inside the compose network: the backend is the only caller.
+      STORAGE_SERVICE_ADDRESS: 0.0.0.0:50052
     volumes:
       - storage-data:/data
 
