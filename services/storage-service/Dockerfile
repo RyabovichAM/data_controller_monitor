@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /src
 # The build context is the repository root: proto/ is shared by all services.
 COPY proto/ proto/
+COPY libs/ libs/
 COPY services/storage-service/ services/storage-service/
 RUN cmake -S services/storage-service -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j$(nproc)
 

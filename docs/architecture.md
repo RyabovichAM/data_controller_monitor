@@ -396,6 +396,44 @@ graph LR
 
 ---
 
+### backend design
+
+[`services/backend/`](../services/backend) — drogon (пакет `libdrogon-dev`,
+1.8.7). Первый в проекте сервис с настоящим циклом событий: остальные обходятся
+потоками с блокирующими вызовами.
+
+| Канал | Как сделано |
+|-------|-------------|
+| реальное время → браузер | Kafka consumer в своём потоке → `RealtimeHub` → WebSocket `/ws/sensor-data` |
+| история → браузер | gRPC-клиент `StorageService` → REST |
+| настройки ↔ браузер | gRPC-клиент `ConfigService` → REST (ещё не сделано) |
+
+Правило, из которого следует вся конструкция: **в потоке цикла событий нельзя
+блокировать.** Обработчик drogon выполняется в loop-потоке, а оба наших клиента
+— синхронные gRPC-стабы, и вызов из обработчика застопорил бы все запросы и все
+вебсокеты, делящие этот цикл. Поэтому:
+
+- REST-ручки, ходящие по gRPC, отвечают асинхронно: обработчик кладёт задачу в
+  `trantor::EventLoopThreadPool` из двух потоков и отдаёт `callback` уже оттуда.
+  Отвечать из чужого потока безопасно — запись передаётся в цикл соединения.
+- Kafka consumer живёт в отдельном потоке и рассылает сообщения через
+  `RealtimeHub`. Соединения он трогает напрямую: `send()` в trantor при вызове
+  не из своего цикла сам ставит задачу в очередь этого цикла.
+- Тело сообщения разбирается один раз в backend'е и уходит в браузер вложенным
+  JSON-значением, а не строкой: `{"collector_id": "...", "payload": {...}}`.
+  Невалидный JSON отбрасывается здесь, а не в каждом клиенте.
+
+Эндпоинты: `GET /api/health`, `GET /api/collectors` (список из
+`storage-service`), `ws://…/ws/sensor-data?collector_id=` — без параметра
+приходит всё.
+
+`libdrogon-dev` в Ubuntu собран со всеми ORM-бэкендами, поэтому его CMake-конфиг
+требует dev-пакеты postgres, sqlite, mysql, hiredis и yaml-cpp, а `FindMySQL`
+ищет имена библиотек, которых в Ubuntu давно нет — обход в
+[Dockerfile](../services/backend/Dockerfile). Контракты подключаются **до**
+`find_package(Drogon)`: тот оставляет `CMAKE_MODULE_PATH` на своих Find-модулях,
+и конфиг gRPC после него не находит c-ares.
+
 ### Stack decisions
 
 | Component | Technology | Status |
@@ -407,6 +445,7 @@ graph LR
 | backend → frontend | REST + WebSocket | ✅ decided |
 | backend → storage (history) | gRPC | ✅ decided |
 | Container | Docker | ✅ decided |
+| HTTP / WebSocket в backend | drogon | ✅ decided |
 | Database | TimescaleDB | ✅ decided |
 | gRPC proto contracts | proto3, `ConfigService` + `StorageService` | ✅ decided |
 | Canvas editor approach | SVG | ✅ decided |

@@ -67,6 +67,27 @@ services:
     volumes:
       - storage-data:/data
 
+  backend:
+    build:
+      context: .
+      dockerfile: services/backend/Dockerfile
+    depends_on:
+      kafka:
+        condition: service_healthy
+      storage-service:
+        condition: service_started
+    environment:
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: sensor-data
+      # A group of its own: backend and storage-service both read every
+      # message rather than sharing them out.
+      KAFKA_GROUP_ID: backend
+      STORAGE_SERVICE_ADDRESS: storage-service:50052
+      BACKEND_PORT: "8080"
+    # The only port meant for the outside world: the browser talks to it.
+    ports:
+      - "8080:8080"
+
   collector:
     build:
       context: .

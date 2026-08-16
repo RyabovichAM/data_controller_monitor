@@ -5,13 +5,11 @@ project(storage-service VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(RDKAFKA REQUIRED IMPORTED_TARGET rdkafka++)
-
-# gRPC contracts shared by all services, generated at build time.
+# Shared with the other services, built from source in every image.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../proto ${CMAKE_BINARY_DIR}/proto)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libs/kafka ${CMAKE_BINARY_DIR}/kafka)
 
-file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h kafka/*.cpp kafka/*.h
+file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h
                               service/*.cpp service/*.h)
 
 add_executable(storage-service main.cpp ${STORAGE_SRC})
@@ -22,11 +20,10 @@ add_executable(storage-service main.cpp ${STORAGE_SRC})
 target_include_directories(storage-service PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     data_storage/
-    kafka/
     service/)
 
 target_link_libraries(storage-service PRIVATE
-    PkgConfig::RDKAFKA
+    dcm_kafka
     dcm_proto)
 
 # DataLoad is the part with dates, time zones and file walking in it, and

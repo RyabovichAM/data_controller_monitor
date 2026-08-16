@@ -11,7 +11,7 @@
 #include <grpcpp/grpcpp.h>
 
 #include "data_storage/storage_registry.h"
-#include "kafka/kafka_consumer.h"
+#include "kafka_consumer.h"
 #include "service/storage_service_impl.h"
 
 namespace {
