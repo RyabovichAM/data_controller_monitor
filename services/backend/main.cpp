@@ -11,6 +11,7 @@
 #include <trantor/net/EventLoopThreadPool.h>
 
 #include "api/api_handlers.h"
+#include "clients/config_client.h"
 #include "clients/storage_client.h"
 #include "kafka_consumer.h"
 #include "realtime/realtime_hub.h"
@@ -68,17 +69,19 @@ int main() {
     // message, they do not share the work.
     const std::string group_id = Env("KAFKA_GROUP_ID", "backend");
     const std::string storage_address = Env("STORAGE_SERVICE_ADDRESS", "storage-service:50052");
+    const std::string config_address = Env("CONFIG_SERVICE_ADDRESS", "config-service:50051");
     const std::string listen_host = Env("BACKEND_HOST", "0.0.0.0");
     const uint16_t listen_port = static_cast<uint16_t>(std::stoi(Env("BACKEND_PORT", "8080")));
 
     clients::StorageClient storage{storage_address};
+    clients::ConfigClient config{config_address};
 
     // Two threads for the synchronous stubs. They are event loops only because
     // trantor already has a pool of them — no work of their own runs here.
     trantor::EventLoopThreadPool blocking_pool{2, "grpc"};
     blocking_pool.start();
 
-    api::RegisterHandlers(storage, blocking_pool);
+    api::RegisterHandlers(storage, config, blocking_pool);
 
     kafka::KafkaConsumer consumer{brokers, topic, group_id};
     consumer.SetErrorHandler([](const std::string& error) {
@@ -108,7 +111,8 @@ int main() {
     });
 
     LOG_INFO << "[backend] " << listen_host << ":" << listen_port << " kafka=" << brokers
-             << " topic=" << topic << " storage=" << storage_address;
+             << " topic=" << topic << " storage=" << storage_address
+             << " config=" << config_address;
 
     drogon::app()
         .addListener(listen_host, listen_port)

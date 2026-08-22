@@ -1,101 +1,50 @@
-import { useEffect, useState } from "react";
-import { fetchCollectors } from "./api";
-import { useSensorFeed } from "./useSensorFeed";
-import type { CollectorState, FeedStatus } from "./types";
+import { useCallback, useState } from "react";
+import { ConfigsScreen } from "./config/ConfigsScreen";
+import { LiveScreen, STATUS_LABEL } from "./LiveScreen";
+import type { FeedStatus } from "./types";
 
-const STATUS_LABEL: Record<FeedStatus, string> = {
-  connecting: "подключение",
-  online: "на связи",
-  offline: "нет связи",
-};
-
-function formatValue(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "—";
-  }
-  if (typeof value === "object") {
-    return JSON.stringify(value);
-  }
-  return String(value);
-}
-
-function CollectorCard({ state }: { state: CollectorState }) {
-  const parameters = Object.entries(state.parameters);
-
-  return (
-    <article className="card">
-      <header>
-        <h2>{state.collectorId}</h2>
-        <span className="muted">
-          {state.messageCount} сообщ. · {state.updatedAt.toLocaleTimeString()}
-        </span>
-      </header>
-
-      {parameters.length === 0 ? (
-        <p className="muted">параметров нет</p>
-      ) : (
-        <table>
-          <tbody>
-            {parameters.map(([name, value]) => (
-              <tr key={name}>
-                <td className="name">{name}</td>
-                <td className="value">{formatValue(value)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </article>
-  );
-}
+type Tab = "live" | "configs";
 
 export default function App() {
-  const { status, collectors } = useSensorFeed();
-  const [stored, setStored] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("live");
+  const [status, setStatus] = useState<FeedStatus>("connecting");
 
-  useEffect(() => {
-    fetchCollectors()
-      .then(setStored)
-      .catch((reason: Error) => setError(reason.message));
-  }, []);
-
-  const live = Object.values(collectors).sort((left, right) =>
-    left.collectorId.localeCompare(right.collectorId),
-  );
-
-  // A collector may have history and be silent right now — it belongs on the
-  // screen just as much, only without values.
-  const silent = stored.filter((collectorId) => !(collectorId in collectors));
+  // Passed down so the live screen can report the state of its socket without
+  // the shell owning the connection.
+  const onStatus = useCallback((next: FeedStatus) => setStatus(next), []);
 
   return (
     <main>
       <header className="top">
         <h1>Data Controller Monitor</h1>
+
+        <nav className="tabs">
+          <button
+            type="button"
+            className={tab === "live" ? "active" : ""}
+            onClick={() => setTab("live")}
+          >
+            Живые значения
+          </button>
+          <button
+            type="button"
+            className={tab === "configs" ? "active" : ""}
+            onClick={() => setTab("configs")}
+          >
+            Настройки
+          </button>
+        </nav>
+
         <span className={`status ${status}`}>{STATUS_LABEL[status]}</span>
       </header>
 
-      {error && <p className="error">Список из хранилища недоступен: {error}</p>}
+      {/* The live screen keeps rendering while hidden, so the socket and the
+          values it has collected survive a trip to the settings and back. */}
+      <div hidden={tab !== "live"}>
+        <LiveScreen onStatus={onStatus} />
+      </div>
 
-      {live.length === 0 && silent.length === 0 ? (
-        <p className="muted">Данных пока нет. Как только collector опубликует первое
-          сообщение, оно появится здесь.</p>
-      ) : (
-        <section className="cards">
-          {live.map((state) => (
-            <CollectorCard key={state.collectorId} state={state} />
-          ))}
-
-          {silent.map((collectorId) => (
-            <article className="card silent" key={collectorId}>
-              <header>
-                <h2>{collectorId}</h2>
-                <span className="muted">есть история, сейчас молчит</span>
-              </header>
-            </article>
-          ))}
-        </section>
-      )}
+      {tab === "configs" && <ConfigsScreen />}
     </main>
   );
 }
