@@ -34,3 +34,7 @@ CMakeLists.txt.user
 *.exe
 *.out
 *.app
+
+# web-ui
+node_modules/
+web-ui/dist/

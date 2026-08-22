@@ -434,6 +434,26 @@ graph LR
 `find_package(Drogon)`: тот оставляет `CMAKE_MODULE_PATH` на своих Find-модулях,
 и конфиг gRPC после него не находит c-ares.
 
+### web-ui design
+
+[`web-ui/`](../web-ui) — React 19 + TypeScript, сборка Vite, отдаётся nginx'ом.
+
+- **Один origin.** nginx отдаёт бандл и проксирует `/api` и `/ws` на backend
+  ([`nginx.conf`](../web-ui/nginx.conf)), поэтому в коде нет ни адресов, ни CORS,
+  а вебсокет открывается на `window.location.host`. Dev-сервер Vite проксирует
+  то же самое на `localhost:8080`, так что код в обоих режимах одинаковый.
+- **Параметры не объявляются, а обнаруживаются.** Схему задаёт контроллер,
+  поэтому UI просто раскладывает пришедший `payload` в таблицу. Значения
+  накапливаются: сообщение с частью параметров не стирает остальные.
+- **Список из хранилища и живой поток — разные источники.** `GET /api/collectors`
+  показывает тех, у кого есть история, вебсокет — тех, кто говорит сейчас;
+  collector с историей, но молчащий, остаётся на экране отдельной карточкой.
+- Обрыв вебсокета не требует перезагрузки страницы: хук переподключается сам,
+  состояние связи видно в шапке.
+
+Экран пока один — живые значения. Графики появятся вместе с `GET /api/history`
+поверх `DataLoad`; выбор библиотеки графиков отложен до этого момента.
+
 ### Stack decisions
 
 | Component | Technology | Status |
@@ -446,6 +466,7 @@ graph LR
 | backend → storage (history) | gRPC | ✅ decided |
 | Container | Docker | ✅ decided |
 | HTTP / WebSocket в backend | drogon | ✅ decided |
+| Сборка web-ui | Vite + nginx | ✅ decided |
 | Database | TimescaleDB | ✅ decided |
 | gRPC proto contracts | proto3, `ConfigService` + `StorageService` | ✅ decided |
 | Canvas editor approach | SVG | ✅ decided |

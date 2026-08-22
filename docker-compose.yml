@@ -84,9 +84,21 @@ services:
       KAFKA_GROUP_ID: backend
       STORAGE_SERVICE_ADDRESS: storage-service:50052
       BACKEND_PORT: "8080"
-    # The only port meant for the outside world: the browser talks to it.
+    # Published for curl and for the vite dev server; the browser reaches the
+    # backend through web-ui, on one origin with the page.
     ports:
       - "8080:8080"
+
+  web-ui:
+    build:
+      context: .
+      dockerfile: web-ui/Dockerfile
+    depends_on:
+      - backend
+    # The way in for a browser: nginx serves the bundle and proxies /api and
+    # /ws to the backend, so the page talks to one origin only.
+    ports:
+      - "80:80"
 
   collector:
     build:
