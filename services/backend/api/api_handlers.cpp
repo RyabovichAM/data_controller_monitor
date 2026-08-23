@@ -1,8 +1,12 @@
 #include "api_handlers.h"
 
+#include <algorithm>
+#include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <drogon/drogon.h>
 #include <google/protobuf/util/json_util.h>
@@ -14,6 +18,8 @@ namespace api {
 namespace {
 
 using clients::ConfigClient;
+
+bool ParseJson(const std::string& text, Json::Value& value);
 
 // The contract is the API: configs travel as the JSON of CollectorConfig, so
 // there is no second schema to keep in step with the .proto file. Field names
@@ -28,14 +34,18 @@ Json::Value ProtoToJson(const google::protobuf::Message& message) {
         return Json::Value{Json::objectValue};
     }
 
+    Json::Value value;
+    ParseJson(text, value);
+
+    return value;
+}
+
+bool ParseJson(const std::string& text, Json::Value& value) {
     Json::CharReaderBuilder builder;
     std::unique_ptr<Json::CharReader> reader{builder.newCharReader()};
 
-    Json::Value value;
     std::string errors;
-    reader->parse(text.data(), text.data() + text.size(), &value, &errors);
-
-    return value;
+    return reader->parse(text.data(), text.data() + text.size(), &value, &errors);
 }
 
 drogon::HttpResponsePtr JsonError(drogon::HttpStatusCode code, const std::string& message) {
@@ -116,6 +126,132 @@ void RegisterCollectors(clients::StorageClient& storage,
                     // Answering from a worker thread is safe: the write is
                     // handed over to the loop the connection belongs to.
                     callback(drogon::HttpResponse::newHttpJsonResponse(body));
+                });
+        },
+        {drogon::Get});
+}
+
+// A month at one sample a second is millions of points; the ceiling keeps a
+// mistyped range from turning into a response nobody can draw.
+constexpr uint32_t kDefaultHistoryLimit = 5000;
+constexpr uint32_t kMaxHistoryLimit = 50000;
+
+std::optional<int64_t> ParseSeconds(const std::string& text) {
+    if (text.empty()) {
+        return std::nullopt;
+    }
+
+    try {
+        return std::stoll(text);
+    } catch (const std::exception&) {
+        return std::nullopt;
+    }
+}
+
+// Charts need numbers. A controller may well send them as strings — the old
+// test scripts of this project do — so a string that converts whole is taken
+// as a number, and anything else is not a series at all.
+std::optional<double> AsNumber(const Json::Value& value) {
+    if (value.isNumeric()) {
+        return value.asDouble();
+    }
+    if (!value.isString()) {
+        return std::nullopt;
+    }
+
+    const std::string text = value.asString();
+    try {
+        size_t consumed = 0;
+        const double number = std::stod(text, &consumed);
+        return consumed == text.size() ? std::optional<double>{number} : std::nullopt;
+    } catch (const std::exception&) {
+        return std::nullopt;
+    }
+}
+
+// Columns rather than rows: a chart wants a series at a time, and the parameter
+// names repeat once instead of once per point.
+Json::Value ToColumns(const std::vector<clients::StorageClient::HistoryPoint>& points) {
+    Json::Value times{Json::arrayValue};
+    std::map<std::string, Json::Value> series;
+
+    for (const clients::StorageClient::HistoryPoint& point : points) {
+        const Json::ArrayIndex index = times.size();
+        times.append(static_cast<Json::Int64>(point.seconds));
+
+        Json::Value payload;
+        if (!ParseJson(point.json, payload) || !payload.isObject()) {
+            continue;
+        }
+
+        for (const std::string& name : payload.getMemberNames()) {
+            std::optional<double> number = AsNumber(payload[name]);
+            if (!number) {
+                continue;
+            }
+
+            Json::Value& column = series[name];
+            if (column.isNull()) {
+                column = Json::Value{Json::arrayValue};
+            }
+            // A parameter that appeared later, or was missing from a sample,
+            // leaves a gap rather than shifting the rest of its column.
+            while (column.size() < index) {
+                column.append(Json::Value{});
+            }
+            column.append(*number);
+        }
+    }
+
+    Json::Value body;
+    body["t"] = times;
+    body["series"] = Json::Value{Json::objectValue};
+    for (auto& [name, column] : series) {
+        while (column.size() < times.size()) {
+            column.append(Json::Value{});
+        }
+        body["series"][name] = column;
+    }
+
+    return body;
+}
+
+void RegisterHistory(clients::StorageClient& storage,
+                     trantor::EventLoopThreadPool& blocking_pool) {
+    drogon::app().registerHandler(
+        "/api/history",
+        [&storage, &blocking_pool](
+            const drogon::HttpRequestPtr& request,
+            std::function<void(const drogon::HttpResponsePtr&)>&& callback) {
+            const std::string collector_id = request->getParameter("collector_id");
+            if (collector_id.empty()) {
+                callback(JsonError(drogon::k400BadRequest, "collector_id is required"));
+                return;
+            }
+
+            const std::optional<int64_t> from = ParseSeconds(request->getParameter("from"));
+            const std::optional<int64_t> to = ParseSeconds(request->getParameter("to"));
+
+            uint32_t limit = kDefaultHistoryLimit;
+            if (std::optional<int64_t> requested = ParseSeconds(request->getParameter("limit"))) {
+                limit = static_cast<uint32_t>(
+                    std::min<int64_t>(std::max<int64_t>(*requested, 1), kMaxHistoryLimit));
+            }
+
+            blocking_pool.getNextLoop()->queueInLoop(
+                [&storage, collector_id, from, to, limit,
+                 callback = std::move(callback)]() mutable {
+                    clients::StorageClient::History history =
+                        storage.DataLoad(collector_id, from, to, limit);
+
+                    if (!history.ok) {
+                        callback(JsonError(HttpStatusFor(history.code),
+                                           "storage-service: " + history.error));
+                        return;
+                    }
+
+                    callback(drogon::HttpResponse::newHttpJsonResponse(
+                        ToColumns(history.points)));
                 });
         },
         {drogon::Get});
@@ -220,6 +356,7 @@ void RegisterHandlers(clients::StorageClient& storage, ConfigClient& config,
                       trantor::EventLoopThreadPool& blocking_pool) {
     RegisterHealth();
     RegisterCollectors(storage, blocking_pool);
+    RegisterHistory(storage, blocking_pool);
     RegisterConfigs(config, blocking_pool);
 }
 
