@@ -15,11 +15,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Qt6 COMPONENTS Widgets SerialPort Charts Network REQUIRED)
 
-file(GLOB_RECURSE TRANSFER_SRC services/collector/transfer/*.cpp services/collector/transfer/*.h)
-file(GLOB_RECURSE APP_SRC     services/collector/app/*.cpp     services/collector/app/*.h)
-# The desktop application keeps its own copy of data_storage: the one in
-# storage-service is being rewritten without Qt, and the widgets here are built
-# around QString, QDateTime and QJsonDocument.
+# The desktop application keeps its own copies of these layers: the ones under
+# services/ are being rewritten without Qt, and the widgets here are built
+# around QString, QDateTime, QJsonDocument and the Qt transports.
+file(GLOB_RECURSE TRANSFER_SRC transfer/*.cpp transfer/*.h)
+file(GLOB_RECURSE APP_SRC     app/*.cpp     app/*.h)
 file(GLOB_RECURSE STORAGE_SRC data_storage/*.cpp data_storage/*.h)
 file(GLOB_RECURSE WIDGETS_SRC widgets/*.cpp widgets/*.h)
 
@@ -40,8 +40,8 @@ qt_add_executable(data_controller_monitor
 )
 
 target_include_directories(data_controller_monitor PRIVATE
-    services/collector/app/
-    services/collector/transfer/
+    app/
+    transfer/
     data_storage/
     widgets/
     widgets/charts
@@ -68,8 +68,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   )
 
   target_include_directories(data_controller_monitor_tests PRIVATE
-      services/collector/app/
-      services/collector/transfer/
+      app/
+      transfer/
       data_storage/
       widgets/
       widgets/charts
