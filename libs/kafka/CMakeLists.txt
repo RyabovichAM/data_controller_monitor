@@ -8,9 +8,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(RDKAFKA REQUIRED IMPORTED_TARGET rdkafka++)
 
-# Shared by storage-service and backend: both consume sensor-data, and an
-# identical copy in two services is the kind that silently drifts apart.
-add_library(dcm_kafka STATIC kafka_consumer.cpp)
+# Shared by every service that touches the topic: collector publishes,
+# storage-service and backend consume. An identical copy per service is the
+# kind that silently drifts apart.
+add_library(dcm_kafka STATIC kafka_consumer.cpp kafka_producer.cpp)
 
 target_include_directories(dcm_kafka PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 

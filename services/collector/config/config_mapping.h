@@ -2,7 +2,6 @@
 #define CONFIG_MAPPING_H
 
 #include <string>
-#include <unordered_map>
 
 #include "app_domain.h"
 #include "config_service.pb.h"
@@ -21,18 +20,12 @@ bool operator!=(const KafkaSettings& lhs, const KafkaSettings& rhs);
 // through transfer::GetBaudRateFromString and friends, so the enums of the
 // contract have to be spelled exactly the way those parsers expect. This is the
 // one place where the two vocabularies meet, hence the tests next to it.
-using TransferSettings = std::unordered_map<std::string, std::string>;
-
+//
 // Throws std::invalid_argument on a config no transport can be built from —
 // the caller keeps running on the previous one.
-TransferSettings ToTransferSettings(const dcm::config::v1::CollectorConfig& config);
+app::Settings ToTransferSettings(const dcm::config::v1::CollectorConfig& config);
 
 KafkaSettings ToKafkaSettings(const dcm::config::v1::CollectorConfig& config);
-
-// The only Qt in this file, and the reason it is a separate function: the
-// mapping itself needs nothing but strings, while MonitorUnit and the
-// transports under it are Qt classes and take a QHash.
-app::MonitorUnitSettings ToMonitorUnitSettings(const TransferSettings& settings);
 
 }   //config
 

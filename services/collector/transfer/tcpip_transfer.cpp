@@ -1,97 +1,120 @@
 #include "tcpip_transfer.h"
 
-#include <QJsonDocument>
-#include <QTcpSocket>
+#include <array>
+#include <system_error>
+#include <utility>
 
-namespace  transfer {
+#include "json_framer.h"
 
-TcpIpTransfer::TcpIpTransfer(const QHash<QString,QString>& settings,
-                                        QObject *parent)
-    :   settings_{GetTcpIpSettingsFromHashMap(settings)}
-    ,   TransferInterface{parent} {
-}
+namespace transfer {
 
-TcpIpTransfer::TcpIpTransfer(QObject *parent)
-    : TransferInterface{parent} {
-}
+namespace {
 
-void TcpIpTransfer::SetUp(TransferSettings* settings) {
-    auto tcpip_settings = dynamic_cast<TcpIpSettings*>(settings);
+constexpr size_t kReadChunk = 4096;
 
-    if(!tcpip_settings)
-        Q_ASSERT("SerialTransfer::SetUp: wrong cast");
-
-    settings_.host = tcpip_settings->host;
-    settings_.port = tcpip_settings->port;
-}
-
-void TcpIpTransfer::Run(OpenErrorHandler err_handler) {
-    connect(&tcp_server_, &QTcpServer::newConnection, this, &TcpIpTransfer::OnNewConnection);
-    if(!tcp_server_.listen(settings_.host,settings_.port)) {
-        tcp_server_.close();
-        err_handler(tcp_server_.errorString());
+// One connected controller. It keeps itself alive for as long as a read is in
+// flight — the asio way: the handler holds a shared_ptr to its own connection,
+// and the last handler to run lets it go.
+class Connection : public std::enable_shared_from_this<Connection> {
+public:
+    Connection(asio::ip::tcp::socket socket, JsonHandler json_handler,
+               ErrorHandler error_handler)
+        : socket_{std::move(socket)}
+        , error_handler_{std::move(error_handler)}
+        , framer_{std::move(json_handler)} {
     }
+
+    void Read() {
+        auto self = shared_from_this();
+        socket_.async_read_some(
+            asio::buffer(chunk_), [this, self](std::error_code error, size_t size) {
+                if (error) {
+                    // End of file is the controller hanging up, not a fault.
+                    if (error != asio::error::eof && error != asio::error::operation_aborted &&
+                        error_handler_) {
+                        error_handler_("connection: " + error.message());
+                    }
+                    return;
+                }
+
+                framer_.Feed(chunk_.data(), size);
+                Read();
+            });
+    }
+
+private:
+    asio::ip::tcp::socket socket_;
+    ErrorHandler error_handler_;
+    JsonFramer framer_;
+    std::array<char, kReadChunk> chunk_{};
+};
+
+}   //namespace
+
+TcpIpTransfer::TcpIpTransfer(const Settings& settings, asio::io_context& io)
+    : settings_{GetTcpIpSettingsFromMap(settings)}
+    , io_{io} {
+}
+
+TcpIpTransfer::~TcpIpTransfer() {
+    Stop();
+}
+
+bool TcpIpTransfer::Start() {
+    const asio::ip::tcp::endpoint endpoint{settings_.host, settings_.port};
+
+    try {
+        acceptor_.emplace(io_);
+        acceptor_->open(endpoint.protocol());
+        // Without this a restart within the TIME_WAIT window cannot take its
+        // own port back, and the collector would refuse to start after a
+        // reconfigure.
+        acceptor_->set_option(asio::ip::tcp::acceptor::reuse_address{true});
+        acceptor_->bind(endpoint);
+        acceptor_->listen();
+    } catch (const std::system_error& error) {
+        ReportError("listen " + endpoint.address().to_string() + ":" +
+                    std::to_string(endpoint.port()) + ": " + error.code().message());
+        acceptor_.reset();
+        return false;
+    }
+
+    Accept();
+    return true;
 }
 
 void TcpIpTransfer::Stop() {
-    disconnect(&tcp_server_, &QTcpServer::newConnection, this, &TcpIpTransfer::OnNewConnection);
-    tcp_server_.close();
+    if (acceptor_) {
+        std::error_code ignored;
+        acceptor_->close(ignored);
+        acceptor_.reset();
+    }
+    // The connections close themselves: their reads end with operation_aborted
+    // and the last handler drops the final reference.
 }
 
-void TcpIpTransfer::SetJsonReceivedDataHandler(JsonReceivedDataHandler handler) {
-    json_received_data_handler_ = handler;
-}
-
-void TcpIpTransfer::SetErrorOcccuredHandler(ErrorOcccuredHandler handler) {
-    error_occcured_handler_ = handler;
-}
-
-bool TcpIpTransfer::ReadJsonLine() {
-    QTcpSocket* socket = static_cast<QTcpSocket*>(sender());
-
-    data_buffer_ += socket->readAll();
-
-    if(left_idx_ == -1)
-        left_idx_ = data_buffer_.indexOf("{");
-    if(right_idx_ == -1)
-        right_idx_ = data_buffer_.indexOf("}");
-
-    if(left_idx_ == -1 || right_idx_ == -1)
-        return false;
-
-    if(left_idx_ > right_idx_) {
-        right_idx_ = -1;
-        data_buffer_ = data_buffer_.mid(left_idx_);
-        left_idx_ = 0;
-        return false;
+void TcpIpTransfer::Accept() {
+    if (!acceptor_) {
+        return;
     }
 
-    QJsonParseError error;
-    QJsonDocument json_data = QJsonDocument::fromJson(data_buffer_.left(right_idx_+1), &error);
+    acceptor_->async_accept([this](std::error_code error, asio::ip::tcp::socket socket) {
+        if (error) {
+            if (error != asio::error::operation_aborted) {
+                ReportError("accept: " + error.message());
+            }
+            return;   // the acceptor is closed, nothing left to wait for
+        }
 
-    data_buffer_ = data_buffer_.mid(right_idx_+1);
-    left_idx_ = -1;
-    right_idx_ = -1;
+        // A framer per connection: two controllers must not have their messages
+        // interleaved into one another's.
+        std::make_shared<Connection>(
+            std::move(socket), [this](const std::string& json) { ReportJson(json); },
+            [this](const std::string& message) { ReportError(message); })
+            ->Read();
 
-    if(error.error == QJsonParseError::NoError) {
-        Q_ASSERT(json_received_data_handler_);
-        json_received_data_handler_(json_data);
-        return true;
-    }
-
-    return false;
-
-}
-
-void TcpIpTransfer::OnNewConnection() {
-    QTcpSocket* socket = tcp_server_.nextPendingConnection();
-    connect(socket, &QTcpSocket::disconnected, socket, &QTcpSocket::deleteLater);
-    connect(socket, &QTcpSocket::readyRead, this, &TcpIpTransfer::ReadJsonLine);
-    connect(socket, &QTcpSocket::errorOccurred, this , [self = this] () {
-        if(self->error_occcured_handler_)
-            self->error_occcured_handler_();
+        Accept();
     });
 }
 
 }   //transfer
-

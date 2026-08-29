@@ -1,22 +1,21 @@
 #ifndef TRANSFER_DOMAIN_H
 #define TRANSFER_DOMAIN_H
 
-#include <QScopedPointer>
-#include <QStringList>
-
-class TransferInterface;
+#include <functional>
+#include <string>
+#include <unordered_map>
 
 namespace transfer {
 
-enum class TransferType {
-    SERIAL,
-    TCP
-};
+// The flat map the configuration arrives in — the same vocabulary the contract
+// is mapped into, "type" telling the factory which transport to build.
+using Settings = std::unordered_map<std::string, std::string>;
 
-struct TransferSettings {
-    virtual ~TransferSettings() = default;
-};
+using JsonHandler = std::function<void(const std::string& json)>;
+using ErrorHandler = std::function<void(const std::string& error)>;
 
-} //transfer namespace
+std::string Value(const Settings& settings, const std::string& key);
+
+}   //transfer
 
 #endif // TRANSFER_DOMAIN_H

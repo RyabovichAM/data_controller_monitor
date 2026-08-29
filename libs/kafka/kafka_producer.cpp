@@ -2,18 +2,18 @@
 
 namespace kafka {
 
-KafkaProducer::KafkaProducer(const QString& brokers, const QString& topic)
+KafkaProducer::KafkaProducer(const std::string& brokers, const std::string& topic)
     : topic_{topic} {
     std::string errstr;
     std::unique_ptr<RdKafka::Conf> conf{
         RdKafka::Conf::create(RdKafka::Conf::CONF_GLOBAL)};
 
-    conf->set("bootstrap.servers", brokers.toStdString(), errstr);
+    conf->set("bootstrap.servers", brokers, errstr);
     conf->set("enable.idempotence", "true", errstr);
 
     producer_.reset(RdKafka::Producer::create(conf.get(), errstr));
     if (!producer_) {
-        ReportError(QString::fromStdString(errstr));
+        ReportError(errstr);
     }
 }
 
@@ -23,26 +23,25 @@ KafkaProducer::~KafkaProducer() {
     }
 }
 
-void KafkaProducer::SetErrorHandler(ErrorHandler handler) {
+void KafkaProducer::SetErrorHandler(ProducerErrorHandler handler) {
     error_handler_ = handler;
 }
 
-bool KafkaProducer::Publish(const QString& key, const QByteArray& payload) {
+bool KafkaProducer::Publish(const std::string& key, const std::string& payload) {
     if (!producer_) {
         return false;
     }
 
-    std::string key_str = key.toStdString();
     RdKafka::ErrorCode err = producer_->produce(
-        topic_.toStdString(),
+        topic_,
         RdKafka::Topic::PARTITION_UA,
         RdKafka::Producer::RK_MSG_COPY,
-        const_cast<char*>(payload.constData()), payload.size(),
-        key_str.data(), key_str.size(),
+        const_cast<char*>(payload.data()), payload.size(),
+        key.data(), key.size(),
         0, nullptr);
 
     if (err != RdKafka::ERR_NO_ERROR) {
-        ReportError(QString::fromStdString(RdKafka::err2str(err)));
+        ReportError(RdKafka::err2str(err));
         return false;
     }
 
@@ -54,7 +53,7 @@ void KafkaProducer::Flush(int timeout_ms) {
     producer_->flush(timeout_ms);
 }
 
-void KafkaProducer::ReportError(const QString& message) {
+void KafkaProducer::ReportError(const std::string& message) {
     if (error_handler_) {
         error_handler_(message);
     }

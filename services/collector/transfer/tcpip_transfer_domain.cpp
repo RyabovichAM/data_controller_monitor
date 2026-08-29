@@ -1,26 +1,42 @@
 #include "tcpip_transfer_domain.h"
 
+#include <stdexcept>
+#include <system_error>
+
 namespace transfer {
 
-QHostAddress GetHostFromString(const QString& host_str) {
-    QHostAddress result = QHostAddress(host_str);
-    if (result.isNull())
-        throw std::invalid_argument("transfer::GetHostFromString:: invalid host argument");
+TcpIpSettings GetTcpIpSettingsFromMap(const Settings& settings) {
+    TcpIpSettings result;
+
+    const std::string host = Value(settings, "host");
+    if (host.empty()) {
+        throw std::invalid_argument("transfer: host is empty");
+    }
+
+    // make_address parses, it does not resolve: a listening socket has nothing
+    // to look up, and a name here would be a mistake worth reporting.
+    std::error_code error;
+    result.host = asio::ip::make_address(host, error);
+    if (error) {
+        throw std::invalid_argument("transfer: '" + host + "' is not an address");
+    }
+
+    const std::string port = Value(settings, "port");
+    if (port.empty()) {
+        throw std::invalid_argument("transfer: port is empty");
+    }
+
+    try {
+        const long number = std::stol(port);
+        if (number <= 0 || number > 65535) {
+            throw std::out_of_range{port};
+        }
+        result.port = static_cast<uint16_t>(number);
+    } catch (const std::exception&) {
+        throw std::invalid_argument("transfer: '" + port + "' is not a port");
+    }
 
     return result;
 }
-
-TcpIpSettings GetTcpIpSettingsFromHashMap(const QHash<QString, QString>& settings_map) {
-    TcpIpSettings settings;
-    settings.host = GetHostFromString(settings_map.value("host"));
-    bool ok;
-    quint16 port = settings_map.value("port").toUShort(&ok);
-    if(!ok) {
-        throw std::invalid_argument("transfer::GetTcpIpSettingsFromHashMap:: invalid port argument");
-    }
-    settings.port = port;
-    return settings;
-}
-
 
 }   //transfer

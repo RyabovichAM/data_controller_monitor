@@ -1,21 +1,22 @@
 #ifndef TCPIP_TRANSFER_DOMAIN_H
 #define TCPIP_TRANSFER_DOMAIN_H
 
-#include <QHash>
-#include <QHostAddress>
+#include <cstdint>
+
+#include <asio/ip/address.hpp>
 
 #include "transfer_domain.h"
 
 namespace transfer {
 
-QHostAddress GetHostFromString(const QString& host_str);
-
-struct TcpIpSettings : public TransferSettings {
-    QHostAddress host = QHostAddress::Any;
-    quint16 port = 0;
+struct TcpIpSettings {
+    asio::ip::address host{asio::ip::address_v4::any()};
+    uint16_t port{0};
 };
 
-TcpIpSettings GetTcpIpSettingsFromHashMap(const QHash<QString, QString>& settings_map);
+// Throws std::invalid_argument on an address or a port a listening socket
+// cannot be given — the caller keeps running on its previous configuration.
+TcpIpSettings GetTcpIpSettingsFromMap(const Settings& settings);
 
 }   //transfer
 

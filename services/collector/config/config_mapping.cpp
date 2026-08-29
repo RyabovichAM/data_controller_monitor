@@ -2,8 +2,6 @@
 
 #include <stdexcept>
 
-#include <QString>
-
 namespace config {
 
 namespace {
@@ -84,8 +82,8 @@ bool operator!=(const KafkaSettings& lhs, const KafkaSettings& rhs) {
     return !(lhs == rhs);
 }
 
-TransferSettings ToTransferSettings(const CollectorConfig& config) {
-    TransferSettings settings;
+app::Settings ToTransferSettings(const CollectorConfig& config) {
+    app::Settings settings;
 
     switch (config.transfer().kind_case()) {
     case dcm::config::v1::TransferSettings::kSerial: {
@@ -123,18 +121,6 @@ KafkaSettings ToKafkaSettings(const CollectorConfig& config) {
         throw std::invalid_argument("config: kafka settings are incomplete");
     }
 
-    return settings;
-}
-
-app::MonitorUnitSettings ToMonitorUnitSettings(const TransferSettings& transfer_settings) {
-    app::MonitorUnitSettings settings;
-
-    for (const auto& [key, value] : transfer_settings) {
-        settings.transfer[QString::fromStdString(key)] = QString::fromStdString(value);
-    }
-
-    // data_storage stays empty on purpose: the collector publishes to Kafka and
-    // saves nothing, that is storage-service's job.
     return settings;
 }
 

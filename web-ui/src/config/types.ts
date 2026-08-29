@@ -14,12 +14,9 @@ export type BaudRate =
 
 export type DataBits = "DATA_BITS_5" | "DATA_BITS_6" | "DATA_BITS_7" | "DATA_BITS_8";
 
-export type Parity =
-  | "PARITY_NONE"
-  | "PARITY_EVEN"
-  | "PARITY_ODD"
-  | "PARITY_SPACE"
-  | "PARITY_MARK";
+// Space and mark parity are in the contract but have no portable counterpart,
+// so the collector refuses them — the form does not offer them either.
+export type Parity = "PARITY_NONE" | "PARITY_EVEN" | "PARITY_ODD";
 
 export type StopBits = "STOP_BITS_ONE" | "STOP_BITS_ONE_AND_HALF" | "STOP_BITS_TWO";
 
@@ -86,8 +83,6 @@ export const PARITIES: Array<[Parity, string]> = [
   ["PARITY_NONE", "нет"],
   ["PARITY_EVEN", "чётность"],
   ["PARITY_ODD", "нечётность"],
-  ["PARITY_SPACE", "пробел"],
-  ["PARITY_MARK", "маркер"],
 ];
 
 export const STOP_BITS: Array<[StopBits, string]> = [

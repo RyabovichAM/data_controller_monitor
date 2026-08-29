@@ -3,50 +3,52 @@
 
 #include <functional>
 #include <memory>
-#include <QJsonDocument>
-#include <QString>
+#include <string>
+
+#include <asio/io_context.hpp>
 
 #include "app_domain.h"
 #include "transfer_interface.h"
 
 namespace app {
 
-class MU_ObserverBase : public QObject {
-public:
-    MU_ObserverBase(QObject* parent = nullptr);
-    virtual void Update(const QJsonDocument& data);
-    virtual ~MU_ObserverBase() = default;
-};
-
+// One collector: a transport underneath, a handler above.
+//
+// The observer used to be a QObject with a virtual Update; a std::function
+// says the same thing, and main.cpp no longer needs a class to hold one line.
 class MonitorUnit {
 public:
-    using ErrorHandler = std::function<void(const QString&)>;
+    using DataHandler = std::function<void(const std::string& json)>;
+    using ErrorHandler = std::function<void(const std::string& error)>;
 
-    MonitorUnit() = default;
-    MonitorUnit(const MonitorUnitSettings& settings);
+    explicit MonitorUnit(asio::io_context& io);
     ~MonitorUnit();
 
-    MonitorUnit(MonitorUnit&&) = default;
-    MonitorUnit& operator=(MonitorUnit&&) = default;
+    void SetName(std::string name);
+    const std::string& Name() const;
 
-    void SetObserver(MU_ObserverBase* observer);
+    void SetSettings(const Settings& settings);
+    const Settings& CurrentSettings() const;
+
+    void SetDataHandler(DataHandler handler);
     void SetErrorHandler(ErrorHandler handler);
-    void SetName(const QString& name);
-    const QString& Name() const;
-    void SetSettings(const MonitorUnitSettings& settings);
-    const MonitorUnitSettings& Settings() const;
-    void StartTransmission();
-    void StopTransmission();
 
-    void Start();
+    // Builds the transport for the current settings and starts reading. False
+    // if the settings are unusable or the source refused to open.
+    bool Start();
     void Stop();
 
 private:
-    MonitorUnitSettings settings_;
+    asio::io_context& io_;
+    Settings settings_;
     std::unique_ptr<transfer::TransferInterface> transfer_;
-    MU_ObserverBase* observer_{nullptr};
+
+    std::string name_;
+    DataHandler data_handler_{nullptr};
     ErrorHandler error_handler_{nullptr};
-    QString mu_unit_name_;
+
+    void OnJson(const std::string& json);
+    void ReportError(const std::string& error) const;
 };
 
 }   //app

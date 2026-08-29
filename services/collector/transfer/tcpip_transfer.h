@@ -1,40 +1,34 @@
 #ifndef TCPIP_TRANSFER_H
 #define TCPIP_TRANSFER_H
 
-#include <QTcpServer>
+#include <memory>
+#include <optional>
 
-#include "transfer_interface.h"
+#include <asio/io_context.hpp>
+#include <asio/ip/tcp.hpp>
+
 #include "tcpip_transfer_domain.h"
+#include "transfer_interface.h"
 
 namespace transfer {
 
-class TcpIpTransfer : public TransferInterface
-{
-    Q_OBJECT
+// Listens for controllers rather than dialling out: they connect, it reads.
+// Several at once are fine — every connection gets its own framer, because a
+// message may arrive split across reads.
+class TcpIpTransfer : public TransferInterface {
 public:
-    explicit TcpIpTransfer(const QHash<QString,QString>& settings,
-                  QObject *parent = nullptr);
-    explicit TcpIpTransfer(QObject *parent = nullptr);
+    TcpIpTransfer(const Settings& settings, asio::io_context& io);
+    ~TcpIpTransfer() override;
 
-    void SetUp(TransferSettings* settings) override;
-    void Run(OpenErrorHandler err_handler) override;
+    bool Start() override;
     void Stop() override;
-    void SetJsonReceivedDataHandler(JsonReceivedDataHandler handler) override;
-    void SetErrorOcccuredHandler(ErrorOcccuredHandler handler) override;
-    bool ReadJsonLine() override;
-
-public slots:
-    void OnNewConnection();
 
 private:
-    QTcpServer tcp_server_;
     TcpIpSettings settings_;
-    JsonReceivedDataHandler json_received_data_handler_;
-    ErrorOcccuredHandler  error_occcured_handler_;
+    asio::io_context& io_;
+    std::optional<asio::ip::tcp::acceptor> acceptor_;
 
-    QByteArray data_buffer_;
-    qsizetype left_idx_{-1};
-    qsizetype right_idx_{-1};
+    void Accept();
 };
 
 }   //transfer

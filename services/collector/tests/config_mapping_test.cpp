@@ -30,10 +30,6 @@ CollectorConfig MakeSerialConfig() {
     return config;
 }
 
-app::MonitorUnitSettings Map(const CollectorConfig& config) {
-    return config::ToMonitorUnitSettings(config::ToTransferSettings(config));
-}
-
 }   //namespace
 
 // The mapping is only correct if the transfer layer accepts what it produces,
@@ -43,25 +39,25 @@ TEST(ConfigMapping, TcpIpSettingsAreParsedByTheTransferLayer) {
     config.mutable_transfer()->mutable_tcp_ip()->set_host("127.0.0.1");
     config.mutable_transfer()->mutable_tcp_ip()->set_port(2323);
 
-    app::MonitorUnitSettings settings = Map(config);
-    ASSERT_EQ(settings.transfer.value("type"), "TCP/IP");
+    app::Settings settings = config::ToTransferSettings(config);
+    ASSERT_EQ(settings["type"], "TCP/IP");
 
-    transfer::TcpIpSettings parsed = transfer::GetTcpIpSettingsFromHashMap(settings.transfer);
-    EXPECT_EQ(parsed.host, QHostAddress("127.0.0.1"));
+    transfer::TcpIpSettings parsed = transfer::GetTcpIpSettingsFromMap(settings);
+    EXPECT_EQ(parsed.host.to_string(), "127.0.0.1");
     EXPECT_EQ(parsed.port, 2323);
 }
 
 TEST(ConfigMapping, SerialSettingsAreParsedByTheTransferLayer) {
-    app::MonitorUnitSettings settings = Map(MakeSerialConfig());
-    ASSERT_EQ(settings.transfer.value("type"), "Serial");
+    app::Settings settings = config::ToTransferSettings(MakeSerialConfig());
+    ASSERT_EQ(settings["type"], "Serial");
 
-    transfer::SerialSettings parsed = transfer::GetSerialSettingsFromHashMap(settings.transfer);
+    transfer::SerialSettings parsed = transfer::GetSerialSettingsFromMap(settings);
     EXPECT_EQ(parsed.port_name, "/dev/ttyUSB0");
-    EXPECT_EQ(parsed.baud_rate, QSerialPort::Baud115200);
-    EXPECT_EQ(parsed.data_bits, QSerialPort::Data8);
-    EXPECT_EQ(parsed.parity, QSerialPort::EvenParity);
-    EXPECT_EQ(parsed.stop_bits, QSerialPort::TwoStop);
-    EXPECT_EQ(parsed.flow_control, QSerialPort::HardwareControl);
+    EXPECT_EQ(parsed.baud_rate.value(), 115200u);
+    EXPECT_EQ(parsed.data_bits.value(), 8u);
+    EXPECT_EQ(parsed.parity.value(), asio::serial_port_base::parity::even);
+    EXPECT_EQ(parsed.stop_bits.value(), asio::serial_port_base::stop_bits::two);
+    EXPECT_EQ(parsed.flow_control.value(), asio::serial_port_base::flow_control::hardware);
 }
 
 // Walks the enums through their descriptors: a value added to the contract and
@@ -92,8 +88,21 @@ TEST(ConfigMapping, EveryValueOfEverySerialEnumIsMapped) {
                 serial->set_flow_control(static_cast<FlowControl>(number));
             }
 
-            EXPECT_NO_THROW(transfer::GetSerialSettingsFromHashMap(Map(config).transfer))
-                << enum_type->name() << " value " << enum_type->value(i)->name();
+            // Space and mark parity have no portable counterpart: asio offers
+            // the three modes every platform agrees on, so those two are
+            // refused rather than silently turned into something else.
+            const std::string name = enum_type->value(i)->name();
+            if (name == "PARITY_SPACE" || name == "PARITY_MARK") {
+                EXPECT_THROW(
+                    transfer::GetSerialSettingsFromMap(config::ToTransferSettings(config)),
+                    std::invalid_argument)
+                    << name;
+                continue;
+            }
+
+            EXPECT_NO_THROW(
+                transfer::GetSerialSettingsFromMap(config::ToTransferSettings(config)))
+                << enum_type->name() << " value " << name;
         }
     }
 }
@@ -109,9 +118,15 @@ TEST(ConfigMapping, UnspecifiedSerialFieldIsRejected) {
     EXPECT_THROW(config::ToTransferSettings(config), std::invalid_argument);
 }
 
-TEST(ConfigMapping, StorageSettingsStayEmpty) {
-    // The collector saves nothing: storage-service does, out of Kafka.
-    EXPECT_TRUE(Map(MakeSerialConfig()).data_storage.isEmpty());
+// The socket layer takes an address, not a name: a host that is not numeric has
+// to be refused where the operator can see it.
+TEST(ConfigMapping, HostThatIsNotAnAddressIsRejected) {
+    CollectorConfig config = MakeConfig();
+    config.mutable_transfer()->mutable_tcp_ip()->set_host("controller.local");
+    config.mutable_transfer()->mutable_tcp_ip()->set_port(2323);
+
+    EXPECT_THROW(transfer::GetTcpIpSettingsFromMap(config::ToTransferSettings(config)),
+                 std::invalid_argument);
 }
 
 TEST(ConfigMapping, KafkaSettingsAreCarriedOver) {

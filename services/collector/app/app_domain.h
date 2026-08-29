@@ -1,18 +1,15 @@
 #ifndef APP_DOMAIN_H
 #define APP_DOMAIN_H
 
-#include <QHash>
-#include <QString>
+#include "transfer_domain.h"
 
 namespace app {
 
-struct MonitorUnitSettings {
-    QHash<QString, QString> transfer;
-    QHash<QString, QString> data_storage;
-};
-
+// The collector configures exactly one unit, so the settings of a unit are the
+// settings of its transport — data_storage is gone from here for good, saving
+// belongs to storage-service.
+using Settings = transfer::Settings;
 
 }   //app
-
 
 #endif // APP_DOMAIN_H

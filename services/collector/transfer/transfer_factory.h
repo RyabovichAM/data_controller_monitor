@@ -3,34 +3,18 @@
 
 #include <memory>
 
+#include <asio/io_context.hpp>
+
 #include "transfer_interface.h"
-#include "tcpip_transfer.h"
-#include "serial_transfer.h"
 
 namespace transfer {
 
-class TransferFactory
-{
+class TransferFactory {
 public:
-    static std::unique_ptr<TransferInterface> CreateTransfer(const std::string& type) {
-        if (type == "Serial") {
-            return std::make_unique<SerialTransfer>();
-        } else if (type == "TCP/IP") {
-            return std::make_unique<TcpIpTransfer>();
-        }
-        Q_ASSERT("TransferFactory: Unknown transfer to create");
-        return nullptr;
-    }
-
-    static std::unique_ptr<TransferInterface> CreateTransfer(const QHash<QString,QString>& settings) {
-        if (settings["type"] == "Serial") {
-            return std::make_unique<SerialTransfer>(settings);
-        } else if (settings["type"] == "TCP/IP") {
-            return std::make_unique<TcpIpTransfer>(settings);
-        }
-        Q_ASSERT("TransferFactory: Unknown transfer to create");
-        return nullptr;
-    }
+    // Throws std::invalid_argument on a type nobody can build or on settings
+    // the transport would refuse — the caller keeps what it was running.
+    static std::unique_ptr<TransferInterface> CreateTransfer(const Settings& settings,
+                                                             asio::io_context& io);
 };
 
 }   //transfer
