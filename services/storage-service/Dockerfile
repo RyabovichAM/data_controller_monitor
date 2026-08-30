@@ -2,6 +2,7 @@ FROM ubuntu:24.04 AS build
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential cmake pkg-config \
+        libpqxx-dev \
         librdkafka-dev \
         libprotobuf-dev libgrpc++-dev \
         protobuf-compiler protobuf-compiler-grpc \
@@ -17,6 +18,7 @@ RUN cmake -S services/storage-service -B build -DCMAKE_BUILD_TYPE=Release && cma
 FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        libpqxx-7.8 \
         librdkafka++1 \
         libprotobuf32t64 libgrpc++1.51t64 \
     && rm -rf /var/lib/apt/lists/*

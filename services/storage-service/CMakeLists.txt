@@ -5,6 +5,9 @@ project(storage-service VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PQXX REQUIRED IMPORTED_TARGET libpqxx)
+
 # Shared with the other services, built from source in every image.
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../proto ${CMAKE_BINARY_DIR}/proto)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libs/kafka ${CMAKE_BINARY_DIR}/kafka)
@@ -23,6 +26,7 @@ target_include_directories(storage-service PRIVATE
     service/)
 
 target_link_libraries(storage-service PRIVATE
+    PkgConfig::PQXX
     dcm_kafka
     dcm_proto)
 
@@ -42,6 +46,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         data_storage/)
 
     target_link_libraries(storage_service_tests PRIVATE
+        PkgConfig::PQXX
         GTest::gtest
         GTest::gtest_main)
 endif()

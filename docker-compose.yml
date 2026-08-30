@@ -47,6 +47,20 @@ services:
     # the compose network. For debugging from the host add a published port in
     # a compose override.
 
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    environment:
+      POSTGRES_USER: dcm
+      POSTGRES_PASSWORD: dcm
+      POSTGRES_DB: dcm_history
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dcm -d dcm_history"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - history-db:/var/lib/postgresql/data
+
   storage-service:
     build:
       context: .
@@ -54,12 +68,17 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+      timescaledb:
+        condition: service_healthy
     environment:
       KAFKA_BROKERS: kafka:9092
       KAFKA_TOPIC: sensor-data
       KAFKA_GROUP_ID: storage-service
-      STORAGE_ROOT: /data
-      STORAGE_FORMAT: text
+      # timescaledb is the operating choice, same as config-service's postgres;
+      # STORAGE_TYPE: file with STORAGE_ROOT/STORAGE_FORMAT is a supported,
+      # tested alternative for a deployment that would rather not run Postgres.
+      STORAGE_TYPE: timescaledb
+      POSTGRES_DSN: postgresql://dcm:dcm@timescaledb:5432/dcm_history
       STORAGE_PERIOD_MS: "0"
       # Serves the history over gRPC. Like config-service, the port stays
       # inside the compose network: the backend is the only caller.
@@ -124,3 +143,4 @@ services:
 volumes:
   storage-data:
   config-db:
+  history-db:

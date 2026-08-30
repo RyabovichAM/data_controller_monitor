@@ -30,7 +30,7 @@ private:
 
     std::ofstream save_file_;
     std::string save_file_date_;   // the day the open file belongs to
-    TimePoint last_save_;
+    SampleThinner thinner_;
 
     std::string Extension() const;
     std::string FileName(const std::string& date) const;

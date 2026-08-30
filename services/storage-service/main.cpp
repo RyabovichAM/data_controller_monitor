@@ -10,6 +10,7 @@
 
 #include <grpcpp/grpcpp.h>
 
+#include "data_storage/data_storage_domain.h"
 #include "data_storage/storage_registry.h"
 #include "kafka_consumer.h"
 #include "service/storage_service_impl.h"
@@ -30,18 +31,37 @@ std::string Env(const char* name, const std::string& fallback) {
     return (value && *value) ? std::string{value} : fallback;
 }
 
+// Everything StorageRegistry needs to build a storage or a directory for any
+// collector, gathered from the environment once at start-up. "timescaledb" is
+// the default: config-service already made a proper database the operating
+// choice everywhere else, and "file" stays a fully supported, tested
+// alternative for a deployment that would rather not run Postgres.
+data_storage::Settings BuildStorageSettings() {
+    data_storage::Settings settings;
+    settings["type"] = Env("STORAGE_TYPE", "timescaledb");
+    settings["period"] = Env("STORAGE_PERIOD_MS", "0");
+
+    if (settings["type"] == "file") {
+        settings["root"] = Env("STORAGE_ROOT", "/data");
+        settings["data_format"] = Env("STORAGE_FORMAT", "text");
+    } else {
+        settings["dsn"] =
+            Env("POSTGRES_DSN", "postgresql://dcm:dcm@timescaledb:5432/dcm_history");
+    }
+
+    return settings;
+}
+
 }   //namespace
 
 int main() {
     const std::string brokers = Env("KAFKA_BROKERS", "kafka:9092");
     const std::string topic = Env("KAFKA_TOPIC", "sensor-data");
     const std::string group_id = Env("KAFKA_GROUP_ID", "storage-service");
-    const std::string root = Env("STORAGE_ROOT", "/data");
-    const std::string data_format = Env("STORAGE_FORMAT", "text");
-    const std::string period = Env("STORAGE_PERIOD_MS", "0");
     const std::string address = Env("STORAGE_SERVICE_ADDRESS", "0.0.0.0:50052");
+    const data_storage::Settings storage_settings = BuildStorageSettings();
 
-    data_storage::StorageRegistry registry{root, data_format, period};
+    data_storage::StorageRegistry registry{storage_settings};
 
     kafka::KafkaConsumer consumer{brokers, topic, group_id};
     consumer.SetErrorHandler([](const std::string& error) {
@@ -77,8 +97,8 @@ int main() {
     std::signal(SIGINT, RequestStop);
     std::signal(SIGTERM, RequestStop);
 
-    std::cout << "[storage-service] " << brokers << " topic=" << topic << " root=" << root
-              << " grpc=" << address << std::endl;
+    std::cout << "[storage-service] " << brokers << " topic=" << topic << " storage="
+              << storage_settings.at("type") << " grpc=" << address << std::endl;
 
     consumer.Run();
 

@@ -118,8 +118,8 @@ graph LR
 `collector` содержит существующие слои `transfer` + `app`:
 
 ```
-MonitorUnit  ← MonitorUnitSettings (Serial/TCP params + Kafka broker address)
-    ├── SerialTransfer / TcpIpTransfer   ← существующий transfer/
+MonitorUnit  ← настройки транспорта (Serial/TCP params)
+    ├── SerialTransfer / TcpIpTransfer   ← asio, transfer/
     └── Kafka producer                   ← публикует JSON в топик sensor-data
 ```
 
@@ -144,19 +144,19 @@ collector получает новый конфиг → перенастраив�
 | Файл | Ответственность |
 |------|-----------------|
 | [`config/config_client.cpp`](../services/collector/config/config_client.cpp) | `GetConfig` при старте, затем `WatchConfig` в своём потоке, переподключение |
-| [`config/config_mapping.cpp`](../services/collector/config/config_mapping.cpp) | `CollectorConfig` → `MonitorUnitSettings` |
+| [`config/config_mapping.cpp`](../services/collector/config/config_mapping.cpp) | `CollectorConfig` → настройки транспорта |
 | [`main.cpp`](../services/collector/main.cpp) | применение конфига, пересоздание Kafka producer'а |
 | [`tests/config_mapping_test.cpp`](../services/collector/tests/config_mapping_test.cpp) | тесты маппинга, цель `collector_tests` (только Debug) |
 
-- **Стрим живёт в отдельном потоке, а конфиг применяется в потоке Qt.**
-  `QTcpServer` и `QSerialPort` принадлежат создавшему их потоку, поэтому конфиг
-  переезжает через `QMetaObject::invokeMethod`.
+- **Стрим живёт в отдельном потоке, а конфиг применяется в потоке цикла
+  событий.** Транспорты принадлежат `asio::io_context`, поэтому конфиг
+  переезжает туда через `asio::post`.
 - **Маппинг — единственное место, где встречаются два словаря.** Транспорт
-  разбирает настройки строками (`transfer::GetBaudRateFromString` и прочие),
-  а контракт оперирует enum'ами; значения `BaudRate` и `DataBits` совпадают с
-  физическими, поэтому переводятся числом, остальные три выписаны явно. Тесты
-  не сравнивают строки, а скармливают результат самим парсерам транспорта —
-  так переименование с любой стороны валит тест, а не collector в проде.
+  разбирает настройки строками, а контракт оперирует enum'ами; значения
+  `BaudRate` и `DataBits` совпадают с физическими, поэтому переводятся числом,
+  остальные три выписаны явно. Тесты не сравнивают строки, а скармливают
+  результат самим парсерам транспорта — так переименование с любой стороны
+  валит тест, а не collector в проде.
 - **Неприменимый конфиг не ломает работающий сбор:** маппинг бросает исключение
   до того, как что-то остановлено, и collector продолжает на прежнем.
 - **Неизменившийся транспорт не трогается** — переоткрытие слушающего сокета
@@ -170,13 +170,64 @@ collector получает новый конфиг → перенастраив�
 ### storage-service design
 
 ```
-DataStorageInterface
-    ├── FileDataStorage        ← существующий, без изменений
-    └── TimescaleDBDataStorage ← новый
+DataStorageInterface           ← хранилище одного collector'а
+    ├── FileDataStorage        ← файл на день, каталог на collector'а
+    └── TimescaleDbDataStorage ← одна гипертаблица sensor_data на всех
+
+CollectorDirectory             ← «у кого вообще что-то есть»
+    ├── FileCollectorDirectory     ← листинг каталогов
+    └── TimescaleCollectorDirectory ← SELECT DISTINCT по той же таблице
 ```
 
-gRPC API:
-- `DataLoad(unit_name, from, to)` — для backend (исторические данные / графики)
+Бэкенд выбирается переменной `STORAGE_TYPE`: `timescaledb` (по умолчанию) или
+`file`. Оба поддерживаются и покрыты тестами — файловый остаётся рабочим
+вариантом для развёртывания, где не хочется поднимать Postgres.
+
+#### Почему интерфейсов два
+
+`DataStorageInterface` отвечает за одного collector'а: сохранить точку,
+прочитать диапазон. Но `ListCollectors` из контракта — вопрос обо **всех**
+сразу, и ни одному экземпляру он не адресуется. Раньше на него отвечал сам
+`StorageRegistry`, напрямую обходя каталоги через `std::filesystem`; для базы
+данных это не работает, потому что там нет каталогов, есть `SELECT DISTINCT`.
+Отсюда второй интерфейс — `CollectorDirectory`, по реализации на бэкенд.
+
+#### TimescaleDB
+
+Одна гипертаблица на все collector'ы, а не таблица на каждого:
+
+```sql
+CREATE TABLE sensor_data (
+    collector_id TEXT        NOT NULL,
+    ts           TIMESTAMPTZ NOT NULL,
+    payload      TEXT        NOT NULL);
+SELECT create_hypertable('sensor_data', 'ts', if_not_exists => true);
+CREATE INDEX sensor_data_collector_ts_idx ON sensor_data (collector_id, ts DESC);
+```
+
+- **Схема создаётся при первом подключении** любого экземпляра хранилища.
+  `IF NOT EXISTS` и `if_not_exists => true` делают это безопасным при гонке:
+  проигравший получает no-op, а не ошибку.
+- **Время едет числом, а не строкой.** У pqxx нет привязки для полного
+  `time_point` (только `year_month_day`), поэтому запись идёт через
+  `to_timestamp($2)`, а чтение — через `EXTRACT(EPOCH FROM ts)`. Это заодно
+  обходит и часовые пояса, и настраиваемый текстовый формат PostgreSQL.
+- **`DataLoad` использует настоящий серверный стрим** — `tx.stream<double,
+  std::string>(query)`, строки приходят по одной. Ровно то же основание, по
+  которому `DataLoad` принимает `DataSink`, а не возвращает контейнер.
+  У `stream()` нет параметров, поэтому значения подставляются в текст запроса:
+  секунды — это цифры, а `collector_id` проходит через `tx.quote()`.
+- **Соединение одно, под мьютексом** — как в `PostgresConfigRepository`.
+  Запись из потока Kafka и чтение из потока gRPC не идут одновременно; для
+  нынешних объёмов пул соединений решал бы задачу, которой пока нет. Оборванное
+  соединение сбрасывается и открывается заново при следующем обращении.
+- **Соединение не открывается в конструкторе:** `FindCollector` создаёт объект
+  хранилища для каждого collector'а, о котором его спросили, и большинство из
+  них ответят на один `DataLoad` и больше не понадобятся.
+
+Прореживание по `survey_period` вынесено в общий `SampleThinner` — политика
+одна на все бэкенды: первая точка сохраняется всегда, последующие не чаще
+периода.
 
 ---
 
@@ -323,9 +374,8 @@ gRPC-сервер рядом с Kafka consumer'ом, порт из `STORAGE_SERV
 образе collector'а это 7.5 МБ самого Qt плюс 36 МБ icu, итого 166 МБ против
 103 МБ у config-service, написанного на std.
 
-Новый код сервисов уже пишется на std (`config-service` целиком, `collector/config/`
-— кроме двух строк адаптера в `ToMonitorUnitSettings`). Qt остаётся в слоях,
-пришедших из монолита:
+Слои, пришедшие из монолита, переписаны; десктопное приложение осталось на
+своих Qt-копиях в корне репозитория:
 
 | Слой | Состояние |
 |------|-----------|

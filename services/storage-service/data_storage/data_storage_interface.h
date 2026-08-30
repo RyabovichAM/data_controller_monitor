@@ -2,7 +2,9 @@
 #define DATA_STORAGE_INTERFACE_H
 
 #include <chrono>
+#include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -21,6 +23,31 @@ struct DataPoint {
 // Takes one point of a range. Returning false stops the walk — the client is
 // gone, or it has had the number of points it asked for.
 using DataSink = std::function<bool(const DataPoint&)>;
+
+// The survey_period policy, shared by every backend: the first sample is
+// always kept (there is nothing to compare it against yet), later ones are
+// kept only survey_period milliseconds apart. Zero keeps every sample.
+class SampleThinner {
+public:
+    explicit SampleThinner(int64_t survey_period_ms) : survey_period_ms_{survey_period_ms} {
+    }
+
+    // True if a sample arriving at `now` should be kept. Has side effects: a
+    // kept sample becomes the new reference point for the next call.
+    bool ShouldKeep(TimePoint now) {
+        if (kept_ && std::chrono::duration_cast<std::chrono::milliseconds>(now - *kept_)
+                          .count() < survey_period_ms_) {
+            return false;
+        }
+
+        kept_ = now;
+        return true;
+    }
+
+private:
+    int64_t survey_period_ms_;
+    std::optional<TimePoint> kept_;
+};
 
 // The storage of one collector. Not a template any more: the desktop
 // application parameterised it over its Qt types, the service has exactly one

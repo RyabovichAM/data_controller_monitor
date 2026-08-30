@@ -70,9 +70,8 @@ bool ReadRecord(std::istream& in, DataFormat format, std::string& time, std::str
 }   //namespace
 
 FileDataStorage::FileDataStorage(const Settings& settings)
-    : settings_{GetFileDataStorageSettings(settings)} {
-    // last_save_ deliberately stays at the epoch: the first sample is written
-    // straight away, and only the ones after it are thinned by the period.
+    : settings_{GetFileDataStorageSettings(settings)}
+    , thinner_{settings_.survey_period} {
 }
 
 void FileDataStorage::SetErrorHandler(ErrorHandler handler) {
@@ -81,13 +80,9 @@ void FileDataStorage::SetErrorHandler(ErrorHandler handler) {
 
 void FileDataStorage::DataSave(const std::string& json) {
     const TimePoint now = std::chrono::system_clock::now();
-
-    const auto since_last =
-        std::chrono::duration_cast<std::chrono::milliseconds>(now - last_save_);
-    if (since_last.count() < settings_.survey_period) {
+    if (!thinner_.ShouldKeep(now)) {
         return;
     }
-    last_save_ = now;
 
     // Rolled over before the write, not after it, so a sample arriving right
     // after midnight lands in the file of its own day.

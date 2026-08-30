@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include "data_storage_domain.h"
 #include "storage_registry.h"
 
 namespace {
@@ -25,7 +26,12 @@ protected:
     }
 
     StorageRegistry MakeRegistry() const {
-        return StorageRegistry{root_.string(), "text", "0"};
+        data_storage::Settings settings;
+        settings["type"] = "file";
+        settings["root"] = root_.string();
+        settings["data_format"] = "text";
+        settings["period"] = "0";
+        return StorageRegistry{settings};
     }
 
     fs::path root_;

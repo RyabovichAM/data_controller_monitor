@@ -195,7 +195,7 @@ TEST_F(FileDataStorageTest, UnknownFormatIsRejected) {
 
 TEST_F(FileDataStorageTest, UnknownStorageTypeIsRejected) {
     Settings settings = SettingsFor("text");
-    settings["type"] = "timescaledb";
+    settings["type"] = "influxdb";   // not one this service knows how to build
 
     EXPECT_THROW(data_storage::DataStorageFactory::CreateDataStorage(settings),
                  std::invalid_argument);
