@@ -12,6 +12,7 @@
 
 #include "api/api_handlers.h"
 #include "clients/config_client.h"
+#include "clients/scheme_client.h"
 #include "clients/storage_client.h"
 #include "kafka_consumer.h"
 #include "realtime/realtime_hub.h"
@@ -75,13 +76,15 @@ int main() {
 
     clients::StorageClient storage{storage_address};
     clients::ConfigClient config{config_address};
+    // Schemes are served by config-service too, on the same address.
+    clients::SchemeClient schemes{config_address};
 
     // Two threads for the synchronous stubs. They are event loops only because
     // trantor already has a pool of them — no work of their own runs here.
     trantor::EventLoopThreadPool blocking_pool{2, "grpc"};
     blocking_pool.start();
 
-    api::RegisterHandlers(storage, config, blocking_pool);
+    api::RegisterHandlers(storage, config, schemes, blocking_pool);
 
     kafka::KafkaConsumer consumer{brokers, topic, group_id};
     consumer.SetErrorHandler([](const std::string& error) {

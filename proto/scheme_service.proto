@@ -1,0 +1,135 @@
+syntax = "proto3";
+
+package dcm.scheme.v1;
+
+// Mnemonic schemes: the drawing an operator watches instead of a table of
+// numbers. A scheme is a canvas with shapes on it and labels bound to the
+// parameters a collector publishes — the pipes and tanks are decoration, the
+// labels are the live part.
+//
+// The desktop application has had this since before the split, as a QWidget
+// canvas storing QList<Shape> and dragged Label widgets. This contract is the
+// same model expressed in a form a browser can draw as SVG.
+
+// ---------------------------------------------------------------------------
+// Geometry
+// ---------------------------------------------------------------------------
+
+message Point {
+  double x = 1;
+  double y = 2;
+}
+
+enum ShapeKind {
+  SHAPE_KIND_UNSPECIFIED = 0;
+  SHAPE_KIND_RECTANGLE   = 1;
+  SHAPE_KIND_ELLIPSE     = 2;
+  SHAPE_KIND_LINE        = 3;
+  // A freehand stroke: an open polyline of however many points the pointer
+  // produced. The desktop editor calls it Brush.
+  SHAPE_KIND_POLYLINE    = 4;
+}
+
+// Decoration. Rectangle and ellipse are defined by two opposite corners, a
+// line by its two ends, a polyline by all of its points — so one repeated
+// field covers every kind rather than a oneof per shape.
+message Shape {
+  ShapeKind kind = 1;
+  repeated Point points = 2;
+
+  // "#rrggbb". Empty means the viewer's default ink, which keeps a scheme
+  // readable when the operator switches theme.
+  string stroke = 3;
+  string fill = 4;
+  double stroke_width = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Live elements
+// ---------------------------------------------------------------------------
+
+// A value from the feed, placed on the canvas. parameter is the JSON key the
+// controller sends — "temperature", "pressure" — and the reason a scheme is
+// bound to one collector rather than floating free.
+message Label {
+  Point position = 1;
+  string parameter = 2;
+
+  // Shown next to the value; empty means the parameter name itself.
+  string caption = 3;
+  string units = 4;
+  double font_size = 5;
+  string color = 6;
+}
+
+// ---------------------------------------------------------------------------
+// The scheme
+// ---------------------------------------------------------------------------
+
+message Scheme {
+  string scheme_id = 1;
+  string title = 2;
+
+  // Whose values the labels show. A scheme without one is still editable, it
+  // just has nothing live on it.
+  string collector_id = 3;
+
+  // The drawing surface in its own units; the viewer scales it to fit.
+  double width = 4;
+  double height = 5;
+
+  repeated Shape shapes = 6;
+  repeated Label labels = 7;
+
+  // Incremented on every save, and used the same way CollectorConfig's is: two
+  // editors cannot silently overwrite one another.
+  int64 version = 8;
+}
+
+// ---------------------------------------------------------------------------
+// RPC
+// ---------------------------------------------------------------------------
+
+message GetSchemeRequest {
+  string scheme_id = 1;
+}
+
+message SaveSchemeRequest {
+  Scheme scheme = 1;
+
+  // The version the edit started from. Zero overwrites unconditionally, which
+  // is what creating a scheme does.
+  int64 expected_version = 2;
+}
+
+message SaveSchemeResponse {
+  int64 version = 1;
+}
+
+message ListSchemesRequest {}
+
+// Only the identifying fields: a list of schemes should not carry every shape
+// of every one of them just to fill a menu.
+message SchemeSummary {
+  string scheme_id = 1;
+  string title = 2;
+  string collector_id = 3;
+  int64 version = 4;
+}
+
+message ListSchemesResponse {
+  repeated SchemeSummary schemes = 1;
+}
+
+message DeleteSchemeRequest {
+  string scheme_id = 1;
+}
+
+message DeleteSchemeResponse {}
+
+service SchemeService {
+  rpc GetScheme(GetSchemeRequest) returns (Scheme);
+  rpc SaveScheme(SaveSchemeRequest) returns (SaveSchemeResponse);
+  rpc ListSchemes(ListSchemesRequest) returns (ListSchemesResponse);
+  rpc DeleteScheme(DeleteSchemeRequest) returns (DeleteSchemeResponse);
+}

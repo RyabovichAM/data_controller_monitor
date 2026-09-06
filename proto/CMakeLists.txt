@@ -12,6 +12,7 @@ find_package(gRPC CONFIG REQUIRED)
 # added to the target by protobuf_generate below.
 add_library(dcm_proto STATIC
     config_service.proto
+    scheme_service.proto
     storage_service.proto)
 
 # Messages: config_service.pb.h / .pb.cc

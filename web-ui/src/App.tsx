@@ -2,9 +2,10 @@ import { useCallback, useState } from "react";
 import { ConfigsScreen } from "./config/ConfigsScreen";
 import { HistoryScreen } from "./history/HistoryScreen";
 import { LiveScreen, STATUS_LABEL } from "./LiveScreen";
+import { SchemesScreen } from "./schemes/SchemesScreen";
 import type { FeedStatus } from "./types";
 
-type Tab = "live" | "history" | "configs";
+type Tab = "live" | "schemes" | "history" | "configs";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("live");
@@ -26,6 +27,13 @@ export default function App() {
             onClick={() => setTab("live")}
           >
             Живые значения
+          </button>
+          <button
+            type="button"
+            className={tab === "schemes" ? "active" : ""}
+            onClick={() => setTab("schemes")}
+          >
+            Схемы
           </button>
           <button
             type="button"
@@ -52,6 +60,7 @@ export default function App() {
         <LiveScreen onStatus={onStatus} />
       </div>
 
+      {tab === "schemes" && <SchemesScreen />}
       {tab === "history" && <HistoryScreen />}
       {tab === "configs" && <ConfigsScreen />}
     </main>

@@ -59,7 +59,7 @@ graph LR
     end
 
     subgraph CS["🐳 config-service (C++)"]
-        GRPC_CS[gRPC server]
+        GRPC_CS["gRPC server\nConfigService + SchemeService"]
         CFGDB[(PostgreSQL)]
         GRPC_CS --- CFGDB
     end
@@ -82,7 +82,7 @@ graph LR
     GRPC_BE -- gRPC DataLoad --> GRPC_SS
     CONS_BE --> API
     UI -- REST / WebSocket --> API
-    API -- gRPC SaveConfig --> GRPC_CS
+    API -- gRPC конфиги и схемы --> GRPC_CS
 ```
 
 ### Services
@@ -93,7 +93,7 @@ graph LR
 | `Kafka` | Docker | Брокер сообщений — гарантирует доставку, хранит сообщения пока подписчики не прочитают |
 | `storage-service` | Docker (C++) | Kafka consumer + gRPC сервер — сохраняет данные в File/TimescaleDB, отдаёт историю по gRPC |
 | `TimescaleDB` | Docker | Time-series база данных |
-| `config-service` | Docker (C++) | gRPC сервер — хранит настройки collectors (Serial/TCP params), заполняется через backend |
+| `config-service` | Docker (C++) | gRPC сервер — хранит настройки collectors (Serial/TCP params) и мнемосхемы, заполняется через backend |
 | `PostgreSQL` | Docker | База данных для config-service |
 | `backend` | Docker (C++) | Kafka consumer + gRPC клиент — толкает реальное время в React, отдаёт историю и конфиги по REST |
 | `web-ui` | Browser (React + TypeScript) | Визуализация в реальном времени, редактор мнемосхем, графики, настройка collectors |
@@ -239,8 +239,9 @@ CREATE INDEX sensor_data_collector_ts_idx ON sensor_data (collector_id, ts DESC)
 |------|-------|--------|
 | [`config_service.proto`](../proto/config_service.proto) | `dcm.config.v1` | `ConfigService` |
 | [`storage_service.proto`](../proto/storage_service.proto) | `dcm.storage.v1` | `StorageService` |
+| [`scheme_service.proto`](../proto/scheme_service.proto) | `dcm.scheme.v1` | `SchemeService` |
 
-Сборка: [`proto/CMakeLists.txt`](../proto/CMakeLists.txt) собирает оба контракта в
+Сборка: [`proto/CMakeLists.txt`](../proto/CMakeLists.txt) собирает все контракты в
 статическую библиотеку `dcm_proto`. `protobuf_generate` запускает `protoc` на этапе
 сборки — отдельно для сообщений (`*.pb.*`) и для служб (`*.grpc.pb.*`, через
 `grpc_cpp_plugin`), результат попадает в каталог сборки. Сервис подключает контракты
@@ -363,6 +364,52 @@ gRPC-сервер рядом с Kafka consumer'ом, порт из `STORAGE_SERV
 
 Реальное время в этих контрактах не участвует: backend получает его из Kafka
 напрямую, минуя `storage-service`.
+
+### SchemeService
+
+| RPC | Тип | Кто зовёт |
+|-----|-----|-----------|
+| `GetScheme` | унарный | backend из UI |
+| `SaveScheme` | унарный | backend из UI |
+| `ListSchemes` | унарный | backend из UI |
+| `DeleteScheme` | унарный | backend из UI |
+
+Мнемосхема — это картинка установки, на которой в нужных местах стоят живые
+значения: прямоугольник котла, эллипс насоса, линии труб и подписи
+`temperature`, `pressure`. В контракте она описана целиком: `Shape` (вид,
+точки, обводка, заливка) и `Label` (координата, имя параметра, подпись,
+единицы, размер, цвет) внутри `Scheme` с холстом `width` × `height`.
+
+- **Геометрия — список точек, а не поля на каждый вид фигуры.** Прямоугольник,
+  эллипс и линия задаются двумя точками, кривая — всеми; один `repeated Point`
+  избавляет от `oneof` на четыре ветки и от отдельного разбора на каждую.
+- **Координаты в единицах холста, а не в пикселях.** SVG растягивается под окно
+  через `viewBox`, поэтому схема, нарисованная на ноутбуке, не разъезжается на
+  панели оператора.
+- **Значение привязано к имени параметра, а не к его текущему числу.** Схема
+  переживает перезапуск collector'а и не хранит данных — только куда их класть.
+- **`ListSchemes` возвращает сводки** (`scheme_id`, `title`, `collector_id`,
+  `version`), а не схемы целиком: выпадающему списку не нужны фигуры.
+- **Потока изменений нет,** в отличие от `ConfigService`: правка схемы никого не
+  перенастраивает, её читает только браузер, когда открывает.
+
+#### Реализация
+
+Схемы живут в **config-service** — в той же базе и на том же порту
+([`storage/postgres_scheme_repository.*`](../services/config-service/storage),
+[`service/scheme_service_impl.*`](../services/config-service/service)). Это тоже
+настройка, её правит тот же оператор через тот же backend, и отдельный контейнер
+ради четырёх RPC был бы развёрнут впустую.
+
+- **Тело схемы лежит в `JSONB` одной колонкой,** а `title` и `collector_id`
+  продублированы отдельными колонками: `ListSchemes` тогда читает узкие строки,
+  а не разбирает каждую фигуру каждой схемы ради заголовка.
+- **Версия и `SELECT … FOR UPDATE`,** как у конфигов: несовпадение — это
+  `FAILED_PRECONDITION`, а в HTTP — **409**. Два оператора на одной схеме не
+  затирают друг друга молча.
+- **Валидация отбивает то, что нельзя нарисовать:** пустой `scheme_id` или
+  заголовок, нулевой холст, фигура без вида или короче двух точек, значение без
+  имени параметра.
 
 ---
 
@@ -558,6 +605,10 @@ graph LR
 | `GET /api/configs` | настроенные collector'ы (`ConfigService`) |
 | `PUT /api/configs/{id}` | сохранить конфиг |
 | `DELETE /api/configs/{id}` | удалить конфиг |
+| `GET /api/schemes` | список мнемосхем, сводками (`SchemeService`) |
+| `GET /api/schemes/{id}` | схема целиком |
+| `PUT /api/schemes/{id}` | сохранить схему |
+| `DELETE /api/schemes/{id}` | удалить схему |
 | `ws://…/ws/sensor-data?collector_id=` | живой поток, без параметра приходит всё |
 
 - **Контракт и есть API.** Конфиг ездит в обе стороны как JSON от
@@ -629,6 +680,29 @@ graph LR
 - Ось времени и подсказка — в местном времени и 24-часовом формате; uPlot по
   умолчанию форматирует по-английски.
 
+Четвёртый экран — мнемосхемы: список схем, редактор и просмотр
+([`web-ui/src/schemes/`](../web-ui/src/schemes)).
+
+- **SVG, а не canvas.** Схема — это несколько десятков фигур, по которым надо
+  попадать мышью: DOM уже умеет hit-testing, canvas потребовал бы вести граф
+  сцены руками ради того же результата.
+- **Один компонент на просмотр и правку.** Разница — флаг `editable`: рисовать
+  и смотреть на одну и ту же схему в двух разных реализациях значит однажды их
+  рассинхронизировать.
+- **Координаты пересчитываются из экранных в единицы холста** по
+  `getBoundingClientRect`: SVG отмасштабирован под окно, и без пересчёта фигура
+  ложилась бы не туда, где отпустили кнопку.
+- **Клик, не сдвинувшийся с места, — не фигура.** Иначе каждый промах по холсту
+  оставлял бы точку нулевого размера.
+- **Подпись отбита от значения его собственным кеглем**, а не фиксированным
+  отступом: при крупном шрифте фиксированный отступ наезжает на значение.
+- **Живые значения берутся из того же вебсокета,** что и на первом экране, но
+  подпиской на `collector_id` схемы — чужие показания на ней не появляются.
+- Сохранение возвращает новую версию, и она становится базой следующей правки:
+  иначе второе сохранение за сеанс всегда конфликтовало бы с первым. **409**
+  показывается как «схему изменили, откройте её заново», а нарисованное
+  остаётся на экране.
+
 ### Stack decisions
 
 | Component | Technology | Status |
@@ -643,6 +717,6 @@ graph LR
 | HTTP / WebSocket в backend | drogon | ✅ decided |
 | Сборка web-ui | Vite + nginx | ✅ decided |
 | Database | TimescaleDB | ✅ decided |
-| gRPC proto contracts | proto3, `ConfigService` + `StorageService` | ✅ decided |
-| Canvas editor approach | SVG | ✅ decided |
+| gRPC proto contracts | proto3, `ConfigService` + `StorageService` + `SchemeService` | ✅ decided |
+| Canvas editor approach | SVG, схемы в config-service | ✅ decided |
 | collector configuration | Config service + gRPC server-streaming hot reload | ✅ decided |

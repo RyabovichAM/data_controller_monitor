@@ -11,8 +11,10 @@
 #include <grpcpp/grpcpp.h>
 
 #include "service/config_service_impl.h"
+#include "service/scheme_service_impl.h"
 #include "service/watch_registry.h"
 #include "storage/postgres_config_repository.h"
+#include "storage/postgres_scheme_repository.h"
 
 namespace {
 
@@ -65,12 +67,19 @@ int main() {
         return 1;
     }
 
+    // The schemes share the database and the port: they are configuration too,
+    // edited by the same operator through the same backend, and a second
+    // service for four RPCs would be a container to deploy for nothing.
+    config::PostgresSchemeRepository scheme_repository{dsn};
+
     config::WatchRegistry watchers;
     config::ConfigServiceImpl service{*repository, watchers};
+    config::SchemeServiceImpl scheme_service{scheme_repository};
 
     grpc::ServerBuilder builder;
     builder.AddListeningPort(address, grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
+    builder.RegisterService(&scheme_service);
 
     std::unique_ptr<grpc::Server> server{builder.BuildAndStart()};
     if (!server) {

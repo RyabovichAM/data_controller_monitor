@@ -78,8 +78,10 @@ drogon::HttpStatusCode HttpStatusFor(grpc::StatusCode code) {
     }
 }
 
-drogon::HttpResponsePtr ErrorFor(const clients::ConfigClient::Result& result,
-                                 const std::string& service) {
+// Every client's Result carries the same two fields, so one helper serves all
+// of them rather than one overload per client.
+template <typename Result>
+drogon::HttpResponsePtr ErrorFor(const Result& result, const std::string& service) {
     return JsonError(HttpStatusFor(result.code), service + ": " + result.error);
 }
 
@@ -350,14 +352,133 @@ void RegisterConfigs(ConfigClient& config, trantor::EventLoopThreadPool& blockin
         {drogon::Delete});
 }
 
+// Schemes travel as the JSON of the Scheme message, the same way configs do:
+// the contract is the API, so there is no second schema to keep in step.
+void RegisterSchemes(clients::SchemeClient& schemes,
+                     trantor::EventLoopThreadPool& blocking_pool) {
+    drogon::app().registerHandler(
+        "/api/schemes",
+        [&schemes, &blocking_pool](
+            const drogon::HttpRequestPtr&,
+            std::function<void(const drogon::HttpResponsePtr&)>&& callback) {
+            blocking_pool.getNextLoop()->queueInLoop(
+                [&schemes, callback = std::move(callback)]() mutable {
+                    clients::SchemeClient::SchemeList list = schemes.ListSchemes();
+                    if (!list.ok) {
+                        callback(ErrorFor(list, "config-service"));
+                        return;
+                    }
+
+                    // Summaries only — a menu of schemes has no use for every
+                    // shape of every one of them.
+                    Json::Value body{Json::arrayValue};
+                    for (const auto& summary : list.schemes) {
+                        body.append(ProtoToJson(summary));
+                    }
+
+                    callback(drogon::HttpResponse::newHttpJsonResponse(body));
+                });
+        },
+        {drogon::Get});
+
+    drogon::app().registerHandler(
+        "/api/schemes/{1}",
+        [&schemes, &blocking_pool](
+            const drogon::HttpRequestPtr&,
+            std::function<void(const drogon::HttpResponsePtr&)>&& callback,
+            std::string scheme_id) {
+            blocking_pool.getNextLoop()->queueInLoop(
+                [&schemes, scheme_id, callback = std::move(callback)]() mutable {
+                    clients::SchemeClient::SchemeResult result = schemes.GetScheme(scheme_id);
+                    if (!result.ok) {
+                        callback(ErrorFor(result, "config-service"));
+                        return;
+                    }
+
+                    callback(drogon::HttpResponse::newHttpJsonResponse(
+                        ProtoToJson(result.scheme)));
+                });
+        },
+        {drogon::Get});
+
+    drogon::app().registerHandler(
+        "/api/schemes/{1}",
+        [&schemes, &blocking_pool](
+            const drogon::HttpRequestPtr& request,
+            std::function<void(const drogon::HttpResponsePtr&)>&& callback,
+            std::string scheme_id) {
+            dcm::scheme::v1::Scheme scheme;
+
+            google::protobuf::util::JsonParseOptions options;
+            options.ignore_unknown_fields = true;
+
+            const std::string body{request->getBody()};
+            if (!google::protobuf::util::JsonStringToMessage(body, &scheme, options).ok()) {
+                callback(JsonError(drogon::k400BadRequest, "body is not a Scheme"));
+                return;
+            }
+
+            // The path names the scheme; a body disagreeing with it would
+            // otherwise save a second scheme under a different id.
+            scheme.set_scheme_id(scheme_id);
+
+            // The version the editor started from travels inside the scheme it
+            // was given, so a stale canvas is rejected rather than overwriting
+            // what someone else saved meanwhile.
+            const int64_t expected_version = scheme.version();
+
+            blocking_pool.getNextLoop()->queueInLoop(
+                [&schemes, scheme, expected_version,
+                 callback = std::move(callback)]() mutable {
+                    clients::SchemeClient::SaveResult result =
+                        schemes.SaveScheme(scheme, expected_version);
+
+                    if (!result.ok) {
+                        callback(ErrorFor(result, "config-service"));
+                        return;
+                    }
+
+                    Json::Value body;
+                    body["version"] = static_cast<Json::Int64>(result.version);
+
+                    callback(drogon::HttpResponse::newHttpJsonResponse(body));
+                });
+        },
+        {drogon::Put});
+
+    drogon::app().registerHandler(
+        "/api/schemes/{1}",
+        [&schemes, &blocking_pool](
+            const drogon::HttpRequestPtr&,
+            std::function<void(const drogon::HttpResponsePtr&)>&& callback,
+            std::string scheme_id) {
+            blocking_pool.getNextLoop()->queueInLoop(
+                [&schemes, scheme_id, callback = std::move(callback)]() mutable {
+                    clients::SchemeClient::Result result = schemes.DeleteScheme(scheme_id);
+                    if (!result.ok) {
+                        callback(ErrorFor(result, "config-service"));
+                        return;
+                    }
+
+                    drogon::HttpResponsePtr response = drogon::HttpResponse::newHttpResponse();
+                    response->setStatusCode(drogon::k204NoContent);
+
+                    callback(response);
+                });
+        },
+        {drogon::Delete});
+}
+
 }   //namespace
 
 void RegisterHandlers(clients::StorageClient& storage, ConfigClient& config,
+                      clients::SchemeClient& schemes,
                       trantor::EventLoopThreadPool& blocking_pool) {
     RegisterHealth();
     RegisterCollectors(storage, blocking_pool);
     RegisterHistory(storage, blocking_pool);
     RegisterConfigs(config, blocking_pool);
+    RegisterSchemes(schemes, blocking_pool);
 }
 
 }   //api

@@ -4,6 +4,7 @@
 #include <trantor/net/EventLoopThreadPool.h>
 
 #include "clients/config_client.h"
+#include "clients/scheme_client.h"
 #include "clients/storage_client.h"
 
 namespace api {
@@ -15,9 +16,10 @@ namespace api {
 // other request and every WebSocket sharing that loop — so the handlers answer
 // asynchronously and the waiting happens on these threads instead.
 //
-// All three references have to outlive the application; in practice they live
-// in main() for the whole run.
+// Every reference has to outlive the application; in practice they live in
+// main() for the whole run.
 void RegisterHandlers(clients::StorageClient& storage, clients::ConfigClient& config,
+                      clients::SchemeClient& schemes,
                       trantor::EventLoopThreadPool& blocking_pool);
 
 }   //api
