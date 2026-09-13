@@ -3,9 +3,10 @@ import { fetchCollectors } from "../api";
 import { ApiError } from "../config/api";
 import { useSensorFeed } from "../useSensorFeed";
 import { deleteScheme, fetchScheme, fetchSchemes, saveScheme } from "./api";
+import { LabelPanel } from "./LabelPanel";
 import { SchemeCanvas } from "./SchemeCanvas";
 import { emptyScheme, TOOLS } from "./types";
-import type { Scheme, SchemeSummary, Tool } from "./types";
+import type { Label, Scheme, SchemeSummary, Tool } from "./types";
 
 export function SchemesScreen() {
   const [summaries, setSummaries] = useState<SchemeSummary[]>([]);
@@ -15,11 +16,15 @@ export function SchemesScreen() {
   const [editable, setEditable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  // Index into scheme.labels of the value whose properties are open.
+  const [selected, setSelected] = useState<number | null>(null);
 
   // The same feed the live screen uses. Subscribed to the scheme's collector,
   // so a scheme of one unit is not repainted by another one's values.
   const { collectors: live } = useSensorFeed(scheme?.collector_id || undefined);
   const values = scheme ? (live[scheme.collector_id]?.parameters ?? {}) : {};
+  const parameters = Object.keys(values).sort();
+  const selectedLabel = selected !== null ? scheme?.labels[selected] : undefined;
 
   const reload = useCallback(async () => {
     try {
@@ -41,6 +46,7 @@ export function SchemesScreen() {
     try {
       setScheme(await fetchScheme(schemeId));
       setEditable(false);
+      setSelected(null);
       setDirty(false);
       setError(null);
     } catch (reason) {
@@ -56,11 +62,22 @@ export function SchemesScreen() {
 
     setScheme(emptyScheme(schemeId));
     setEditable(true);
+    setSelected(null);
     setDirty(true);
   };
 
   const save = async () => {
     if (!scheme) {
+      return;
+    }
+
+    // config-service refuses it as well, but only here can the culprit be
+    // pointed at rather than described.
+    const unbound = scheme.labels.findIndex((label) => !label.parameter);
+    if (unbound !== -1) {
+      setEditable(true);
+      setSelected(unbound);
+      setError("У значения не выбран параметр");
       return;
     }
 
@@ -103,6 +120,19 @@ export function SchemesScreen() {
     setDirty(true);
   };
 
+  const updateLabel = (index: number, label: Label) => {
+    if (scheme) {
+      update({ ...scheme, labels: scheme.labels.map((old, i) => (i === index ? label : old)) });
+    }
+  };
+
+  const removeLabel = (index: number) => {
+    if (scheme) {
+      update({ ...scheme, labels: scheme.labels.filter((_, i) => i !== index) });
+      setSelected(null);
+    }
+  };
+
   return (
     <section>
       <div className="toolbar">
@@ -127,7 +157,10 @@ export function SchemesScreen() {
             <button
               type="button"
               className={editable ? "active" : ""}
-              onClick={() => setEditable(!editable)}
+              onClick={() => {
+                setEditable(!editable);
+                setSelected(null);
+              }}
             >
               {editable ? "Правка" : "Просмотр"}
             </button>
@@ -184,6 +217,23 @@ export function SchemesScreen() {
         </div>
       )}
 
+      {/* The row is kept while nothing is selected: a panel appearing on
+          the first click would push the canvas down under the pointer. */}
+      {scheme && editable &&
+        (selected !== null && selectedLabel ? (
+          <LabelPanel
+            key={selected}
+            label={selectedLabel}
+            parameters={parameters}
+            onChange={(label) => updateLabel(selected, label)}
+            onRemove={() => removeLabel(selected)}
+          />
+        ) : (
+          <div className="toolbar label-panel">
+            <span className="muted">Выберите значение, чтобы изменить его свойства.</span>
+          </div>
+        ))}
+
       {scheme ? (
         <>
           <SchemeCanvas
@@ -191,14 +241,16 @@ export function SchemesScreen() {
             tool={tool}
             values={values}
             editable={editable}
+            selected={selected}
+            onSelect={setSelected}
             onChange={update}
           />
           {editable && (
             <p className="muted">
               Рисование: выберите инструмент и протяните по холсту. «Значение» —
-              клик по холсту, затем имя параметра. В режиме «Выбор»: значения
-              перетаскиваются, двойной клик удаляет значение, клик по фигуре
-              удаляет фигуру.
+              клик по холсту ставит новое значение, параметр выбирается в панели
+              над холстом. В режиме «Выбор»: клик по значению открывает его
+              свойства, значения перетаскиваются, клик по фигуре удаляет фигуру.
             </p>
           )}
         </>

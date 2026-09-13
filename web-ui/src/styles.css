@@ -161,6 +161,7 @@ button.active {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 14px;
   margin: 18px 0 4px;
@@ -304,4 +305,37 @@ select:focus {
 .toolbar label.inline input,
 .toolbar label.inline select {
   min-width: 140px;
+}
+
+/* Properties of the selected value. The row keeps its height whether a value
+   is selected or not, so the canvas does not move under the pointer. */
+.label-panel {
+  min-height: 36px;
+  gap: 12px;
+}
+
+/* As specific as the .toolbar rule above, which otherwise keeps every field
+   at its 140px minimum and pushes the row onto two lines. */
+.label-panel label.inline input {
+  min-width: 0;
+  width: 140px;
+}
+
+.label-panel label.inline input.narrow {
+  width: 64px;
+}
+
+.label-panel label.inline input[type="color"] {
+  width: 40px;
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.scheme-selection {
+  fill: none;
+  stroke: var(--accent);
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
 }

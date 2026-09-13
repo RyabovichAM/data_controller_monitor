@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { Label, Point, Scheme, Shape, ShapeKind, Tool } from "./types";
 
 // SVG rather than canvas: a scheme is a few dozen shapes that have to be
@@ -72,6 +72,8 @@ export function SchemeCanvas({
   tool,
   values,
   editable,
+  selected,
+  onSelect,
   onChange,
 }: {
   scheme: Scheme;
@@ -79,11 +81,36 @@ export function SchemeCanvas({
   // Live values by parameter name; undefined while nothing has arrived yet.
   values: Record<string, unknown>;
   editable: boolean;
+  // Index of the label whose properties are open, null for none.
+  selected: number | null;
+  onSelect: (index: number | null) => void;
   onChange: (scheme: Scheme) => void;
 }) {
   const surface = useRef<SVGSVGElement>(null);
+  const selectedText = useRef<SVGGElement>(null);
+  const frame = useRef<SVGRectElement>(null);
   const [drawing, setDrawing] = useState<Shape | null>(null);
-  const [draggedLabel, setDraggedLabel] = useState<number | null>(null);
+  // The label being dragged and where on it the pointer took hold: without
+  // the offset the label would jump to put its anchor under the pointer.
+  const [dragged, setDragged] = useState<{ index: number; dx: number; dy: number } | null>(
+    null,
+  );
+
+  // The frame follows the text, whose width changes with every value that
+  // arrives, so it is measured after each render rather than guessed from
+  // font metrics. Set directly: a state update here would render again.
+  useLayoutEffect(() => {
+    const box = selectedText.current?.getBBox();
+    if (!box || !frame.current) {
+      return;
+    }
+
+    const margin = 4;
+    frame.current.setAttribute("x", String(box.x - margin));
+    frame.current.setAttribute("y", String(box.y - margin));
+    frame.current.setAttribute("width", String(box.width + 2 * margin));
+    frame.current.setAttribute("height", String(box.height + 2 * margin));
+  });
 
   // Pointer coordinates in the scheme's own units, not the screen's: the SVG
   // is scaled to fit, so the two differ whenever the window is not exactly the
@@ -101,20 +128,27 @@ export function SchemeCanvas({
   };
 
   const onPointerDown = (event: React.PointerEvent) => {
-    if (!editable || tool === "select") {
+    if (!editable) {
+      return;
+    }
+
+    // Labels stop their own pointerdown, so reaching here in select mode
+    // means empty canvas or a shape: the selection goes.
+    if (tool === "select") {
+      onSelect(null);
       return;
     }
 
     const point = toCanvas(event);
 
+    // The parameter is chosen in the panel that opens on the new label, from
+    // the names actually arriving; a prompt would have to be typed blind.
     if (tool === "label") {
-      const parameter = window.prompt("Имя параметра, например temperature");
-      if (parameter) {
-        onChange({
-          ...scheme,
-          labels: [...scheme.labels, { position: point, parameter, font_size: 16 }],
-        });
-      }
+      onChange({
+        ...scheme,
+        labels: [...scheme.labels, { position: point, parameter: "", font_size: 16 }],
+      });
+      onSelect(scheme.labels.length);
       return;
     }
 
@@ -122,10 +156,11 @@ export function SchemeCanvas({
   };
 
   const onPointerMove = (event: React.PointerEvent) => {
-    if (draggedLabel !== null) {
+    if (dragged) {
       const point = toCanvas(event);
+      const position = { x: point.x - dragged.dx, y: point.y - dragged.dy };
       const labels = scheme.labels.map((label, index) =>
-        index === draggedLabel ? { ...label, position: point } : label,
+        index === dragged.index ? { ...label, position } : label,
       );
       onChange({ ...scheme, labels });
       return;
@@ -146,8 +181,8 @@ export function SchemeCanvas({
   };
 
   const onPointerUp = () => {
-    if (draggedLabel !== null) {
-      setDraggedLabel(null);
+    if (dragged) {
+      setDragged(null);
       return;
     }
 
@@ -168,10 +203,6 @@ export function SchemeCanvas({
     if (editable && tool === "select") {
       onChange({ ...scheme, shapes: scheme.shapes.filter((_, i) => i !== index) });
     }
-  };
-
-  const removeLabel = (index: number) => {
-    onChange({ ...scheme, labels: scheme.labels.filter((_, i) => i !== index) });
   };
 
   const formatValue = (label: Label): string => {
@@ -207,32 +238,56 @@ export function SchemeCanvas({
           key={index}
           transform={`translate(${label.position.x} ${label.position.y})`}
           onPointerDown={(event) => {
-            if (editable && tool === "select") {
-              event.stopPropagation();
-              setDraggedLabel(index);
+            // With a shape tool the label is just something to draw over.
+            if (!editable || (tool !== "select" && tool !== "label")) {
+              return;
+            }
+
+            // Clicking a label selects it rather than dropping a new one on
+            // top of it.
+            event.stopPropagation();
+            onSelect(index);
+
+            if (tool === "select") {
+              const point = toCanvas(event);
+              setDragged({
+                index,
+                dx: point.x - label.position.x,
+                dy: point.y - label.position.y,
+              });
             }
           }}
-          onDoubleClick={() => editable && removeLabel(index)}
-          style={editable && tool === "select" ? { cursor: "move" } : undefined}
+          style={
+            editable && tool === "select"
+              ? { cursor: "move" }
+              : editable && tool === "label"
+                ? { cursor: "pointer" }
+                : undefined
+          }
         >
-          {/* The caption sits a whole line above the value, measured in the
-              value's own font size — a fixed offset collides as soon as the
-              operator picks a larger one. */}
-          <text
-            className="scheme-caption"
-            y={-(label.font_size || 16) * 0.9}
-            fontSize={(label.font_size || 16) * 0.6}
-          >
-            {label.caption || label.parameter}
-          </text>
-          <text
-            className="scheme-value"
-            fontSize={label.font_size || 16}
-            fill={label.color || "var(--series-1)"}
-          >
-            {formatValue(label)}
-            {label.units ? ` ${label.units}` : ""}
-          </text>
+          <g ref={index === selected ? selectedText : undefined}>
+            {/* The caption sits a whole line above the value, measured in the
+                value's own font size — a fixed offset collides as soon as the
+                operator picks a larger one. */}
+            <text
+              className="scheme-caption"
+              y={-(label.font_size || 16) * 0.9}
+              fontSize={(label.font_size || 16) * 0.6}
+            >
+              {label.caption || label.parameter || "?"}
+            </text>
+            <text
+              className="scheme-value"
+              fontSize={label.font_size || 16}
+              fill={label.color || "var(--series-1)"}
+            >
+              {formatValue(label)}
+              {label.units ? ` ${label.units}` : ""}
+            </text>
+          </g>
+          {editable && index === selected && (
+            <rect ref={frame} className="scheme-selection" />
+          )}
         </g>
       ))}
     </svg>
